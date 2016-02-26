@@ -1,14 +1,14 @@
-CFACV -- a collective variables implementation for NAMD
+#CFACV -- a collective variables implementation for NAMD
 
-Cameron F Abrams
-Drexel University
-Philadelphia, PA
-cfa22@drexel.edu
-215 895 2231
+##Cameron F Abrams
+##Drexel University
+##Philadelphia, PA
+##cfa22@drexel.edu
+##215 895 2231
 
 (c) 2016 
 
-INTRODUCTION
+##INTRODUCTION
 
 CFACV is a simple collective variables implementation for NAMD that
 uses 'tclforces' and implements Temperature-Accelerated Molecular
@@ -25,7 +25,7 @@ In this friendly release, there are three subdirectories, summarized below:
 3. example -- an example TAMD run
 
 
-INSTRUCTIONS FOR RUNNING THE EXAMPLE
+##INSTRUCTIONS FOR RUNNING THE EXAMPLE
 
 1. Compile shared object libraries cfacv.so and libgenericdataspace.so
 
@@ -51,7 +51,7 @@ INSTRUCTIONS FOR RUNNING THE EXAMPLE
      report data on fictitious variables "Z" and congruent collective variables
      "Th" (for "theta")
 
-INSTRUCTIONS FOR INSTALLING CFACV
+##INSTRUCTIONS FOR INSTALLING CFACV
 
 1. copy the cfacv/ directory wholesale under your home directory
 
@@ -59,7 +59,7 @@ INSTRUCTIONS FOR INSTALLING CFACV
    NAMD configuration file references the right path for cfacv_tclforces.tcl
    as being ${HOME}/cfacv/tcl/cfacv_tclforces.tcl
 
-MORE DETAILS
+##MORE DETAILS
 
 CFACV interfaces with NAMD via a tclforces script called
 'cfacv_tclforces.tcl' that initializes a workspace and then defines
