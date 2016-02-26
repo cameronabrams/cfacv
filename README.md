@@ -1,12 +1,9 @@
 #CFACV -- a collective variables implementation for NAMD
 
-Cameron F Abrams, Drexel University, Philadelphia, Pennsylvania
-
-cfa22@drexel.edu
-
-215 895 2231
-
-(c) 2016 
+Cameron F Abrams, Drexel University, Philadelphia, Pennsylvania  
+cfa22@drexel.edu  
+215 895 2231  
+(c) 2016   
 
 ###INTRODUCTION
 
@@ -25,7 +22,7 @@ In this friendly release, there are three subdirectories, summarized below:
 3. example -- an example TAMD run
 
 
-###INSTRUCTIONS FOR RUNNING THE EXAMPLE
+###INSTRUCTIONS FOR RUNNING THE HIV-1 MA EXAMPLE
 
 1. Compile shared object libraries cfacv.so and libgenericdataspace.so
 
@@ -39,7 +36,7 @@ In this friendly release, there are three subdirectories, summarized below:
  
 2. Run the example (This is a system with HIV-1 MA (PDB 2hiw))
 
-   * cd into example/
+   * cd into examples/hiv1-ma
    * examine mk_tPDB.tcl; you can edit parts of this
      Currently, this is set to block the protein into 5 subdomains
    * issue "vmd -dispdev text -e mk_tPDB.tcl -args -p my_system.pdb"
@@ -50,6 +47,9 @@ In this friendly release, there are three subdirectories, summarized below:
    * watch it run -- the log file has lines that begin with "CFACV/C) that
      report data on fictitious variables "Z" and congruent collective variables
      "Th" (for "theta")
+
+The other example is alanine dipeptide in TIP3P water, with the phi and psi
+angles as CV's, driven by TAMD.
 
 ###INSTRUCTIONS FOR INSTALLING CFACV
 
