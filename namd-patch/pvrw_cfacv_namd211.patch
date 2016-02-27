@@ -1,0 +1,626 @@
+diff -Naur src_orig/Broadcasts.h src/Broadcasts.h
+--- src_orig/Broadcasts.h	2015-03-03 12:54:14.000000000 -0500
++++ src/Broadcasts.h	2016-02-09 08:54:38.750574462 -0500
+@@ -31,6 +31,7 @@
+   SCRIPT_ATOMSEND,
+   SCRIPT_ATOMRECV,
+   SCRIPT_MINIMIZE,
++  SCRIPT_HITBOUNDARY,
+   SCRIPT_DUMMY
+ };
+ 
+@@ -51,6 +52,7 @@
+ #ifdef MEASURE_NAMD_WITH_PAPI
+   papiMeasureTag,
+ #endif
++  hitBoundaryTag,
+   dummyTag
+ };
+ 
+@@ -72,6 +74,7 @@
+ #ifdef MEASURE_NAMD_WITH_PAPI
+   SimpleBroadcastObject<int> papiMeasureBarrier;
+ #endif
++  SimpleBroadcastObject<int> hitBoundary;
+ 
+   ControllerBroadcasts(const LDObjHandle *ldObjPtr = 0) : 
+     velocityRescaleFactor(velocityRescaleFactorTag, ldObjPtr),
+@@ -88,7 +91,8 @@
+ #ifdef MEASURE_NAMD_WITH_PAPI
+ 	papiMeasureBarrier(papiMeasureTag, ldObjPtr),
+ #endif
+-	traceBarrier(traceBarrierTag, ldObjPtr)
++      traceBarrier(traceBarrierTag, ldObjPtr),
++      hitBoundary(hitBoundaryTag, ldObjPtr)
+   { ; }
+ };
+ 
+diff -Naur src_orig/GlobalMasterTcl.C src/GlobalMasterTcl.C
+--- src_orig/GlobalMasterTcl.C	2015-10-22 01:03:13.000000000 -0400
++++ src/GlobalMasterTcl.C	2016-02-09 14:15:55.660579924 -0500
+@@ -5,6 +5,7 @@
+ **/
+ 
+ #include "InfoStream.h"
++#include "BackEnd.h"
+ #include "Node.h"
+ #include "Molecule.h"
+ #include "ReductionMgr.h"
+@@ -518,6 +519,41 @@
+ }
+ #endif
+ 
++/* CFA: The boundary flag broadcast */
++int GlobalMasterTcl::Tcl_setboundaryflag(ClientData clientData,
++     Tcl_Interp *interp, int argc, char *argv[]) {
++  GlobalMasterTcl *self = (GlobalMasterTcl *)clientData;
++  if (argc != 3) {
++    Tcl_SetResult(interp,"wrong # args",TCL_VOLATILE);
++    return TCL_ERROR;
++  }
++  int step;
++  int value;
++  if (Tcl_GetInt(interp,argv[1],&step) != TCL_OK) {
++    return TCL_ERROR;
++  }
++  
++  if (Tcl_GetInt(interp,argv[2],&value) != TCL_OK) {
++    return TCL_ERROR;
++  }
++  //    fprintf(stdout,"CFA: GlobalMasterTcl::Tcl_setboundaryflag: step %i value %i\n",
++  //  step,value);fflush(stdout);
++  self->boundary_flag_step=step;
++  self->boundary_flag_value=value;
++  //fprintf(stdout,"CFA: GlobalMasterTcl::Tcl_setboundaryflag: done.\n");fflush(stdout);
++
++  return TCL_OK;
++}
++
++int GlobalMasterTcl::Tcl_exitsafe(ClientData clientData,
++      Tcl_Interp *interp, int argc, char *argv[]) {
++  GlobalMasterTcl *self = (GlobalMasterTcl *)clientData;
++
++  CkPrintf("TCL:  ExitSafe called.\n");
++  BackEnd::exit();
++  return TCL_OK;
++}
++
+ 
+ GlobalMasterTcl::GlobalMasterTcl() {
+   DebugM(3,"Constructing GlobalMasterTcl\n");
+@@ -551,6 +587,8 @@
+   interp = Node::Object()->getScript()->interp;
+   DebugM(1,"here\n");
+ 
++  broadcast = new ControllerBroadcasts;
++
+   Tcl_CreateCommand(interp, "atomid", Tcl_atomid,
+     (ClientData) (Node::Object()->molecule), (Tcl_CmdDeleteProc *) NULL);
+ 
+@@ -607,6 +645,11 @@
+       (ClientData) this, (Tcl_CmdDeleteProc *) NULL);
+   Tcl_CreateCommand(interp, (char *)"getstep", Tcl_getstep,
+     (ClientData) this, (Tcl_CmdDeleteProc *) NULL);
++  Tcl_CreateCommand(interp, (char *)"setboundaryflag", Tcl_setboundaryflag,
++    (ClientData) this, (Tcl_CmdDeleteProc *) NULL);  //added by TANG
++  Tcl_CreateCommand(interp, "exitsafe", Tcl_exitsafe,
++    (ClientData) this, (Tcl_CmdDeleteProc *) NULL);  //added by TANG
++
+ #else
+ 
+   NAMD_die("Sorry, tclForces is not available; built without TCL.");
+@@ -638,6 +681,9 @@
+   }
+ #endif
+ 
++  //problem here during minimization
++  broadcast->hitBoundary.publish(boundary_flag_step,boundary_flag_value);
++
+   reduction->submit();
+ 
+ }
+diff -Naur src_orig/GlobalMasterTcl.h src/GlobalMasterTcl.h
+--- src_orig/GlobalMasterTcl.h	2015-10-22 01:03:13.000000000 -0400
++++ src/GlobalMasterTcl.h	2016-02-08 13:39:10.705294299 -0500
+@@ -16,11 +16,18 @@
+ #include <tcl.h>
+ #endif
+ 
++/* CFA: establishing a broadcast for voronoi cell violation */
++#include "Broadcasts.h"
++
+ class GlobalMasterTcl : public GlobalMaster {
+  public:
+   GlobalMasterTcl();
+   ~GlobalMasterTcl();
+  protected:
++  /* CFA: The boundary flag broadcast */
++  int boundary_flag_step;
++  int boundary_flag_value;
++  ControllerBroadcasts * broadcast;
+   virtual void calculate();
+  private:
+   SubmitReduction *reduction;
+@@ -43,6 +50,9 @@
+   static int Tcl_loadtotalforces(ClientData, Tcl_Interp *, int, Tcl_Obj * const []);
+   static int Tcl_addforce(ClientData, Tcl_Interp *, int, Tcl_Obj * const []); 
+   static int Tcl_addenergy(ClientData, Tcl_Interp *, int, char **);
++  /* CFA: The boundary flag broadcast */
++  static int Tcl_setboundaryflag(ClientData, Tcl_Interp *, int, char **);
++  static int Tcl_exitsafe(ClientData, Tcl_Interp *, int, char **);
+ #endif
+ };
+ 
+diff -Naur src_orig/Lattice.h src/Lattice.h
+--- src_orig/Lattice.h	2011-10-25 16:46:30.000000000 -0400
++++ src/Lattice.h	2016-02-08 13:03:08.777322118 -0500
+@@ -29,7 +29,8 @@
+ public:
+   Lattice(void) : a1(0,0,0), a2(0,0,0), a3(0,0,0),
+                   b1(0,0,0), b2(0,0,0), b3(0,0,0),
+-                  o(0,0,0), p1(0), p2(0), p3(0) {};
++                  o(0,0,0), p1(0), p2(0), p3(0),
++                  a1o(0,0,0), a2o(0,0,0), a3o(0,0,0) {};
+ 
+   // maps a transformation triplet onto a single integer
+   static int index(int i=0, int j=0, int k=0)
+@@ -43,6 +44,19 @@
+     set(A,B,C,o);
+   }
+ 
++  // save the current lattice vector to a1o, etc.
++  void save(void) 
++  {
++    a1o=a1; a2o=a2; a3o=a3;
++  }
++
++  // restore the saved lattice vector
++  void restore(void)
++  {
++    a1=a1o; a2=a2o; a3=a3o;
++    recalculate();
++  }
++
+   // sets lattice basis vectors and origin (fixed center)
+   void set(Vector A, Vector B, Vector C, Position Origin)
+   {
+@@ -248,6 +262,10 @@
+   Vector b() const { return a2; }
+   Vector c() const { return a3; }
+ 
++  Vector ao() const { return a1o; }
++  Vector bo() const { return a2o; }
++  Vector co() const { return a3o; }
++
+   // only if along x y z axes
+   int orthogonal() const {
+     return ( ! ( a1.y || a1.z || a2.x || a2.z || a3.x || a3.y ) );
+@@ -276,6 +294,7 @@
+ 
+ private:
+   Vector a1,a2,a3; // real lattice vectors
++  Vector a1o, a2o, a3o; // storage
+   Vector b1,b2,b3; // reciprocal lattice vectors (more or less)
+   Vector o; // origin (fixed center of cell)
+   int p1, p2, p3; // periodic along this lattice vector?
+diff -Naur src_orig/NamdTypes.h src/NamdTypes.h
+--- src_orig/NamdTypes.h	2013-07-10 13:20:46.000000000 -0400
++++ src/NamdTypes.h	2016-02-04 11:20:34.725852910 -0500
+@@ -88,6 +88,8 @@
+ 
+ struct FullAtom : CompAtom, CompAtomExt{
+   Velocity velocity;
++  Velocity velocityOld;
++  Position positionOld;
+   Position fixedPosition;
+   Mass mass;
+   union{
+@@ -98,6 +100,7 @@
+   };  
+   int32 status;
+   Transform transform;
++  Transform transformOld;
+   int migrationGroupSize;
+   Real rigidBondLength;
+ 
+diff -Naur src_orig/Sequencer.C src/Sequencer.C
+--- src_orig/Sequencer.C	2015-03-03 12:54:14.000000000 -0500
++++ src/Sequencer.C	2016-02-09 14:15:35.582830930 -0500
+@@ -256,10 +256,14 @@
+ 
+     const int reassignFreq = simParams->reassignFreq;
+ 
+-  if ( scriptTask == SCRIPT_RUN ) {
++    // declare the flag for checking for request to rewind velocities/positions
++    // assume it is 0
++    int doPosVelRewind = 0;
++
++    if ( scriptTask == SCRIPT_RUN ) {
+ 
+ //    printf("Doing initial rattle\n");
+-    rattle1(0.,0);  // enforce rigid bond constraints on initial positions
++      rattle1(0.,0);  // enforce rigid bond constraints on initial positions
+ 
+     if (simParams->lonepairs) {
+       patch->atomMapper->registerIDsFullAtom(
+@@ -323,169 +327,183 @@
+ 
+     for ( ++step; step <= numberOfSteps; ++step )
+     {
+-      rescaleVelocities(step);
+-      tcoupleVelocities(timestep,step);
+-      berendsenPressure(step);
+-
+-      if ( ! commOnly ) {
+-        addForceToMomentum(0.5*timestep);
+-        if (staleForces || doNonbonded)
+-          addForceToMomentum(0.5*nbondstep,Results::nbond,staleForces,1);
+-        if (staleForces || doFullElectrostatics)
+-          addForceToMomentum(0.5*slowstep,Results::slow,staleForces,1);
+-      }
+-
+-      /* reassignment based on half-step velocities
+-         if ( !commOnly && ( reassignFreq>0 ) && ! (step%reassignFreq) ) {
+-         addVelocityToPosition(0.5*timestep);
+-         reassignVelocities(timestep,step);
+-         addVelocityToPosition(0.5*timestep);
+-         rattle1(0.,0);
+-         rattle1(-timestep,0);
+-         addVelocityToPosition(-1.0*timestep);
+-         rattle1(timestep,0);
+-         } */
+-
+-      maximumMove(timestep);
+-      if ( ! commOnly ) addVelocityToPosition(0.5*timestep);
+-
+-      // We add an Ornstein-Uhlenbeck integration step for the case of BAOAB (Langevin)
+-      if ( simParams->langevinOn && simParams->langevin_useBAOAB ) langevinVelocities(timestep);
+-
+-      langevinPiston(step);
+-      if ( ! commOnly ) addVelocityToPosition(0.5*timestep);
+-
+-      // impose hard wall potential for Drude bond length
+-      hardWallDrude(timestep, 1);
+-
+-      minimizationQuenchVelocity();
+-
+-      doNonbonded = !(step%nonbondedFrequency);
+-      doFullElectrostatics = (dofull && !(step%fullElectFrequency));
+-
+-      if ( zeroMomentum && doFullElectrostatics )
+-        correctMomentum(step,slowstep);
+-
+-      submitHalfstep(step);
++      //      fprintf(stdout,"PVRW: begin step %i with state %i\n",step,doPosVelRewind);fflush(stdout);
++      if (!doPosVelRewind) {
++	saveOldPosVel();
++	rescaleVelocities(step);
++	tcoupleVelocities(timestep,step);
++	berendsenPressure(step);
++
++	if ( ! commOnly ) {
++	  addForceToMomentum(0.5*timestep);
++	  if (staleForces || doNonbonded)
++	    addForceToMomentum(0.5*nbondstep,Results::nbond,staleForces,1);
++	  if (staleForces || doFullElectrostatics)
++	    addForceToMomentum(0.5*slowstep,Results::slow,staleForces,1);
++	}
++      
++	/* reassignment based on half-step velocities
++	   if ( !commOnly && ( reassignFreq>0 ) && ! (step%reassignFreq) ) {
++	   addVelocityToPosition(0.5*timestep);
++	   reassignVelocities(timestep,step);
++	   addVelocityToPosition(0.5*timestep);
++	   rattle1(0.,0);
++	   rattle1(-timestep,0);
++	   addVelocityToPosition(-1.0*timestep);
++	   rattle1(timestep,0);
++	   } */
++
++	maximumMove(timestep);
++	if ( !doPosVelRewind && ! commOnly ) addVelocityToPosition(0.5*timestep);
++
++	// We add an Ornstein-Uhlenbeck integration step for the case of BAOAB (Langevin)
++	if ( !doPosVelRewind && simParams->langevinOn && simParams->langevin_useBAOAB ) langevinVelocities(timestep);
++
++	if ( !doPosVelRewind ) langevinPiston(step);
++	if ( !doPosVelRewind && ! commOnly ) addVelocityToPosition(0.5*timestep);
++
++	// impose hard wall potential for Drude bond length
++	hardWallDrude(timestep, 1);
++
++	minimizationQuenchVelocity();
++
++	doNonbonded = !(step%nonbondedFrequency);
++	doFullElectrostatics = (dofull && !(step%fullElectFrequency));
++
++	if ( !doPosVelRewind && zeroMomentum && doFullElectrostatics )
++	  correctMomentum(step,slowstep);
++
++
++	submitHalfstep(step);
++	
++	doMolly = simParams->mollyOn && doFullElectrostatics;
++	// BEGIN LA
++	doLoweAndersen = simParams->loweAndersenOn && doNonbonded;
++	// END LA
++	maxForceUsed = Results::normal;
++	if ( doNonbonded ) maxForceUsed = Results::nbond;
++	if ( doFullElectrostatics ) maxForceUsed = Results::slow;
++	if ( accelMDOn && (accelMDdihe || accelMDdual))  maxForceUsed = Results::amdf;
++
++	// Migrate Atoms on stepsPerCycle
++	doEnergy = ! ( step % energyFrequency );
++	if ( accelMDOn && !accelMDdihe ) doEnergy=1;
++	if ( adaptTempOn ) doEnergy=1; 
++      } else {
++	//	fprintf(stdout,"PVRW: restoring\n");fflush(stdout);
++	restoreOldPosVel();
++      }
++  
++      runComputeObjects(doPosVelRewind || !(step%stepsPerCycle),step<numberOfSteps);
+ 
+-      doMolly = simParams->mollyOn && doFullElectrostatics;
+-      // BEGIN LA
+-      doLoweAndersen = simParams->loweAndersenOn && doNonbonded;
+-      // END LA
+-
+-      maxForceUsed = Results::normal;
+-      if ( doNonbonded ) maxForceUsed = Results::nbond;
+-      if ( doFullElectrostatics ) maxForceUsed = Results::slow;
+-      if ( accelMDOn && (accelMDdihe || accelMDdual))  maxForceUsed = Results::amdf;
+-
+-      // Migrate Atoms on stepsPerCycle
+-      doEnergy = ! ( step % energyFrequency );
+-      if ( accelMDOn && !accelMDdihe ) doEnergy=1;
+-      if ( adaptTempOn ) doEnergy=1; 
+-      runComputeObjects(!(step%stepsPerCycle),step<numberOfSteps);
+- 
++      if (doTcl) {
++	//fprintf(stdout,"PVRW: Waiting for broadcast at step %i...\n",step);fflush(stdout);
++	doPosVelRewind = broadcast->hitBoundary.get(step);
++	//fprintf(stdout,"PVRW: Received broadcast of %i at step %i\n",doPosVelRewind,step);fflush(stdout);
++      }
++      
+       rescaleaccelMD(step, doNonbonded, doFullElectrostatics); // for accelMD
+      
+       if ( staleForces || doTcl || doColvars ) {
+-        if ( doNonbonded ) saveForce(Results::nbond);
+-        if ( doFullElectrostatics ) saveForce(Results::slow);
++	if ( doNonbonded ) saveForce(Results::nbond);
++	if ( doFullElectrostatics ) saveForce(Results::slow);
+       }
+ 
+       // reassignment based on full-step velocities
+-      if ( !commOnly && ( reassignFreq>0 ) && ! (step%reassignFreq) ) {
+-        reassignVelocities(timestep,step);
+-        addForceToMomentum(-0.5*timestep);
+-        if (staleForces || doNonbonded)
+-          addForceToMomentum(-0.5*nbondstep,Results::nbond,staleForces,0);
+-        if (staleForces || doFullElectrostatics)
+-          addForceToMomentum(-0.5*slowstep,Results::slow,staleForces,0);
+-        rattle1(-timestep,0);
++      if ( !doPosVelRewind && !commOnly && ( reassignFreq>0 ) && ! (step%reassignFreq) ) {
++	reassignVelocities(timestep,step);
++	addForceToMomentum(-0.5*timestep);
++	if (staleForces || doNonbonded)
++	  addForceToMomentum(-0.5*nbondstep,Results::nbond,staleForces,0);
++	if (staleForces || doFullElectrostatics)
++	  addForceToMomentum(-0.5*slowstep,Results::slow,staleForces,0);
++	rattle1(-timestep,0);
+       }
+-
+-      if ( ! commOnly ) {
+-        langevinVelocitiesBBK1(timestep);
+-        addForceToMomentum(timestep);
+-        if (staleForces || doNonbonded) {
+-          addForceToMomentum(nbondstep,Results::nbond,staleForces,1);
+-        }
+-        if (staleForces || doFullElectrostatics) {
+-          addForceToMomentum(slowstep,Results::slow,staleForces,1);
+-        }
+-        langevinVelocitiesBBK2(timestep);
++	
++      if ( !doPosVelRewind && ! commOnly ) {
++	langevinVelocitiesBBK1(timestep);
++	addForceToMomentum(timestep);
++	if (staleForces || doNonbonded) {
++	  addForceToMomentum(nbondstep,Results::nbond,staleForces,1);
++	}
++	if (staleForces || doFullElectrostatics) {
++	  addForceToMomentum(slowstep,Results::slow,staleForces,1);
++	}
++	langevinVelocitiesBBK2(timestep);
+       }
+ 
+       // add drag to each atom's positions
+-      if ( ! commOnly && movDragOn ) addMovDragToPosition(timestep);
+-      if ( ! commOnly && rotDragOn ) addRotDragToPosition(timestep);
+-
++      if ( !doPosVelRewind && ! commOnly && movDragOn ) addMovDragToPosition(timestep);
++      if ( !doPosVelRewind && ! commOnly && rotDragOn ) addRotDragToPosition(timestep);
++      
+       rattle1(timestep,1);
+       if (doTcl || doColvars)  // include constraint forces
+-        computeGlobal->saveTotalForces(patch);
++	computeGlobal->saveTotalForces(patch);
+ 
+       submitHalfstep(step);
+       if ( zeroMomentum && doFullElectrostatics ) submitMomentum(step);
+-
+-      if ( ! commOnly ) {
+-        addForceToMomentum(-0.5*timestep);
+-        if (staleForces || doNonbonded)
+-          addForceToMomentum(-0.5*nbondstep,Results::nbond,staleForces,1);
+-        if (staleForces || doFullElectrostatics)
+-          addForceToMomentum(-0.5*slowstep,Results::slow,staleForces,1);
++      
++      if ( !doPosVelRewind && ! commOnly ) {
++	addForceToMomentum(-0.5*timestep);
++	if (staleForces || doNonbonded)
++	  addForceToMomentum(-0.5*nbondstep,Results::nbond,staleForces,1);
++	if (staleForces || doFullElectrostatics)
++	  addForceToMomentum(-0.5*slowstep,Results::slow,staleForces,1);
+       }
+-
+-	// rattle2(timestep,step);
+-
+-	submitReductions(step);
+-	submitCollections(step);
+-       //Update adaptive tempering temperature
+-        adaptTempUpdate(step);
++      // rattle2(timestep,step);
++    
++      submitReductions(step);
++      submitCollections(step);
++      //Update adaptive tempering temperature
++      adaptTempUpdate(step);
+ 
+ #if CYCLE_BARRIER
+-        cycleBarrier(!((step+1) % stepsPerCycle), step);
++      cycleBarrier(!((step+1) % stepsPerCycle), step);
+ #elif PME_BARRIER
+-        cycleBarrier(doFullElectrostatics, step);
++      cycleBarrier(doFullElectrostatics, step);
+ #elif  STEP_BARRIER
+-        cycleBarrier(1, step);
++      cycleBarrier(1, step);
+ #endif
+ 
+-	 if(Node::Object()->specialTracing || simParams->statsOn){
+-		 int bstep = simParams->traceStartStep;
+-		 int estep = bstep + simParams->numTraceSteps;
+-		 if(step == bstep || step == estep){
+-			 traceBarrier(step);
+-		 }			 
+-	 }
+-
+-#ifdef MEASURE_NAMD_WITH_PAPI	 
+-	 if(simParams->papiMeasure) {
+-		 int bstep = simParams->papiMeasureStartStep;
+-		 int estep = bstep + simParams->numPapiMeasureSteps;
+-		 if(step == bstep || step==estep) {
+-			 papiMeasureBarrier(step);
+-		 }
+-	 }
++      if(Node::Object()->specialTracing || simParams->statsOn){
++	int bstep = simParams->traceStartStep;
++	int estep = bstep + simParams->numTraceSteps;
++	if(step == bstep || step == estep){
++	  traceBarrier(step);
++	}			 
++      }
++
++#ifdef MEASURE_NAMD_WITH_PAPI
++      if(simParams->papiMeasure) {
++	int bstep = simParams->papiMeasureStartStep;
++	int estep = bstep + simParams->numPapiMeasureSteps;
++	if(step == bstep || step==estep) {
++	  papiMeasureBarrier(step);
++	}
++      }
+ #endif
+ 	  
+-        if(traceIsOn()){
+-            traceUserEvent(eventEndOfTimeStep);
+-            sprintf(traceNote, "%s%d",tracePrefix,step); 
+-            traceUserSuppliedNote(traceNote);
+-        }
+-	rebalanceLoad(step);
+-
++      if(traceIsOn()){
++	traceUserEvent(eventEndOfTimeStep);
++	sprintf(traceNote, "%s%d",tracePrefix,step); 
++	traceUserSuppliedNote(traceNote);
++      }
++      rebalanceLoad(step);
++      
+ #if PME_BARRIER
+-	// a step before PME
+-        cycleBarrier(dofull && !((step+1)%fullElectFrequency),step);
++      // a step before PME
++      cycleBarrier(dofull && !((step+1)%fullElectFrequency),step);
+ #endif
+ 
+ #if USE_HPM
+-        if(step == START_HPM_STEP)
+-          (CProxy_Node(CkpvAccess(BOCclass_group).node)).startHPM();
+-
+-        if(step == STOP_HPM_STEP)
+-          (CProxy_Node(CkpvAccess(BOCclass_group).node)).stopHPM();
++      if(step == START_HPM_STEP)
++	(CProxy_Node(CkpvAccess(BOCclass_group).node)).startHPM();
++      
++      if(step == STOP_HPM_STEP)
++	(CProxy_Node(CkpvAccess(BOCclass_group).node)).stopHPM();
+ #endif
+     }
++    
+ }
+ 
+ // add moving drag to each atom's position
+@@ -1182,6 +1200,7 @@
+ 
+ }
+ 
++
+ void Sequencer::adaptTempUpdate(int step)
+ {
+    //check if adaptive tempering is enabled and in the right timestep range
+@@ -1311,6 +1330,44 @@
+   patch->addVelocityToPosition(dt);
+ }
+ 
++void Sequencer::saveOldPosVel ( void )
++{
++  FullAtom *a = patch->atom.begin();
++  int numAtoms = patch->numAtoms;
++  patch->lattice.save();
++  //  iout << "SAVING LATTICE " << patch->lattice.a() << " "
++  //    <<  patch->lattice.b() << " " << patch->lattice.c() << "\n";
++  //iout << "TO " <<  patch->lattice.ao() << " "
++  //     <<  patch->lattice.bo() << " " << patch->lattice.co() << "\n";
++  for(int i = 0; i < numAtoms; ++i ){
++    a[i].velocityOld.x = a[i].velocity.x;
++    a[i].velocityOld.y = a[i].velocity.y;
++    a[i].velocityOld.z = a[i].velocity.z;
++    a[i].positionOld.x = a[i].position.x;
++    a[i].positionOld.y = a[i].position.y;
++    a[i].positionOld.z = a[i].position.z;
++    a[i].transformOld = a[i].transform;
++  }
++}
++
++void Sequencer::restoreOldPosVel ( void )
++{
++  FullAtom *a = patch->atom.begin();
++  int numAtoms = patch->numAtoms;
++
++  for(int i = 0; i < numAtoms; ++i ){
++    a[i].velocity.x = -a[i].velocityOld.x;
++    a[i].velocity.y = -a[i].velocityOld.y;
++    a[i].velocity.z = -a[i].velocityOld.z;
++    a[i].position.x = a[i].positionOld.x;
++    a[i].position.y = a[i].positionOld.y;
++    a[i].position.z = a[i].positionOld.z;
++    a[i].transform = a[i].transformOld;
++  }
++
++  patch->lattice.restore();
++}
++
+ void Sequencer::hardWallDrude(BigReal dt, int pressure)
+ {
+   if ( simParams->drudeHardWallOn ) {
+diff -Naur src_orig/Sequencer.h src/Sequencer.h
+--- src_orig/Sequencer.h	2013-10-30 14:26:16.000000000 -0400
++++ src/Sequencer.h	2016-02-09 10:31:58.040573291 -0500
+@@ -111,6 +111,8 @@
+     int ldbSteps;
+     void rebalanceLoad(int timestep);
+ 
++    void saveOldPosVel ( void );
++    void restoreOldPosVel ( void ) ;
+ 
+ private:
+     CthThread thread;
