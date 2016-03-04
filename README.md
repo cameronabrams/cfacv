@@ -15,11 +15,11 @@ centers of mass of groupings of atoms and any lengths, angles, and
 dihedrals constructed thereof.  These CV's can be harmonically
 restrained or driven with Temperature-Accelerated MD.
 
-In this friendly release, there are three subdirectories, summarized below:
+In this release (v1.0), there are three subdirectories, summarized below:
 
 1. src -- C files and headers, plus a makefile
 2. tcl -- tcl scripts
-3. example -- an example TAMD run
+3. examples -- three example TAMD simulation inputs
 
 
 ###INSTRUCTIONS FOR RUNNING THE HIV-1 MA EXAMPLE
@@ -30,14 +30,14 @@ In this friendly release, there are three subdirectories, summarized below:
     * mkdir lib
     * cd src
     * make cfacv.so
-    * make libgenericdataspace.so 
+    * make libgenericdataspace.so
 
      Note that you must have swig installed
  
 2. Run the example (This is a system with HIV-1 MA (PDB 2hiw))
 
    * cd into examples/hiv1-ma
-   * examine mk_tPDB.tcl; you can edit parts of this
+   * examine mk_tPDB.tcl; you can edit parts of this  
      Currently, this is set to block the protein into 5 subdomains
    * issue "vmd -dispdev text -e mk_tPDB.tcl -args -p my_system.pdb"
      This will create "label.pdb"; "label.pdb.BAK" is a copy I created.
@@ -48,8 +48,9 @@ In this friendly release, there are three subdirectories, summarized below:
      report data on fictitious variables "Z" and congruent collective variables
      "Th" (for "theta")
 
-The other example is alanine dipeptide in TIP3P water, with the phi and psi
-angles as CV's, driven by TAMD.
+The example in the directory ala2/ is alanine dipeptide in TIP3P water, with the phi and psi
+angles as CV's, driven by TAMD.  The directory ala2-fixed-phi-psi/ is an example in which 
+cfacv is used to simply restrain at a particular (phi,psi).
 
 ###INSTRUCTIONS FOR INSTALLING CFACV
 
@@ -57,7 +58,7 @@ angles as CV's, driven by TAMD.
 
 2. in any run directory where you want to use cfacv, make sure the
    NAMD configuration file references the right path for cfacv_tclforces.tcl
-   as being ${HOME}/cfacv/tcl/cfacv_tclforces.tcl
+   as being $env(HOME)/cfacv/tcl/cfacv_tclforces.tcl or equivalent.
 
 ###MORE DETAILS
 
@@ -65,7 +66,7 @@ CFACV interfaces with NAMD via a tclforces script called
 'cfacv_tclforces.tcl' that initializes a workspace and then defines
 the all-important 'calcforces' procedure.  Procedures called from this
 script are defined in cfacv.tcl and much of the implementation is
-housed in a cfacv.c.  Swig is used to interface cfacv.tcl and cfacv.c
+housed in cfacv.c.  Swig is used to interface cfacv.tcl and cfacv.c
 to create a shared object library 'cfacv.so' loaded by
 cfacv_tclforces.  (Note: you need swig installed to build the
 shared-object library.)
