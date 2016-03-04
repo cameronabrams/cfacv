@@ -5,6 +5,12 @@ cfa22@drexel.edu
 215 895 2231  
 (c) 2016   
 
+CFACV is citable and archived at Zenodo: [![DOI](https://zenodo.org/badge/20736/cameronabrams/cfacv.svg)](https://zenodo.org/badge/latestdoi/20736/cameronabrams/cfacv)  
+
+Please also cite "Cameron F. Abrams and Eric Vanden-Eijnden, "Large-scale conformational sampling of proteins using temperature-accelerated molecular dynamics," Proc. Natl. Acad. Sci. USA 107 4961-4966 (2010)"  
+
+
+
 ###INTRODUCTION
 
 CFACV is a simple collective variables implementation for NAMD that
