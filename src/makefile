@@ -37,4 +37,4 @@ centers.o:      centers.c centers.h
 	gcc -O3 -c -fpic -o $@ centers.c
 
 clean:
-	rm *.o ../lib/*.so *~
+	rm *.o *.so *_wrap.c ../lib/*.so *~
