@@ -33,12 +33,12 @@ In this release (v1.0), there are three subdirectories, summarized below:
 1. Compile shared object libraries cfacv.so and libgenericdataspace.so
 
    From within the main directory:
-    * mkdir lib
+    * mkdir lib (you only have to do this once)
     * cd src
     * make cfacv.so
-    * make libgenericdataspace.so
+    * make genericdataspace.so
 
-     Note that you must have swig installed
+     Note that you must have swig installed.
  
 2. Run the example (This is a system with HIV-1 MA (PDB 2hiw))
 
@@ -54,7 +54,7 @@ In this release (v1.0), there are three subdirectories, summarized below:
      report data on fictitious variables "Z" and congruent collective variables
      "Th" (for "theta")
 
-The example in the directory ala2/ is alanine dipeptide in TIP3P water, with the phi and psi
+The example in the directory alad/ is CHARM22 alanine dipeptide (residue ALAD) in TIP3P water, with the phi and psi
 angles as CV's, driven by TAMD.  The directory ala2-fixed-phi-psi/ is an example in which 
 cfacv is used to simply restrain at a particular (phi,psi).
 
@@ -62,7 +62,15 @@ cfacv is used to simply restrain at a particular (phi,psi).
 
 1. copy the cfacv/ directory wholesale under your home directory
 
-2. in any run directory where you want to use cfacv, make sure the
+2. cd ~/cfacv ; mkdir lib bin (if you haven't already)
+
+3. cd src; make all
+
+
+That's it!
+
+
+In any run directory where you want to use cfacv, make sure the
    NAMD configuration file references the right path for cfacv_tclforces.tcl
    as being $env(HOME)/cfacv/tcl/cfacv_tclforces.tcl or equivalent.
 
