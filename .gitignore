@@ -1,0 +1,4 @@
+*.o
+*_wrap.c
+*.so
+tcl-untested/

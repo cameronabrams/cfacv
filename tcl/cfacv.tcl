@@ -1260,3 +1260,27 @@ proc binary_block_by_rgyr { selList molid selstr minNRes } {
 
     return $np
 }
+
+# returns displacment vector (A - B) % D -- minimum image convention 
+proc vecsub_mic { A B p D } {
+   set t [vecsub $A $B]
+   set tt {}
+   for {set d 0} {$d < [llength $t]} {incr d} {
+      set e [lindex $t $d]
+      set tD [lindex $D $d]
+      set tDL [lindex $tD 0]
+      set tDH [lindex $tD 1]
+      #puts "tDL $tDL tDH $tDH"
+      set tDD [expr $tDH - $tDL]
+      set tDDh [expr $tDD * 0.5]
+      if {[lindex $p $d] && [expr $e < -$tDDh]} {
+	set e [expr $e + $tDD]
+      }
+      if {[lindex $p $d] && [expr $e > $tDDh]} {
+        set e [expr $e - $tDD]
+      }
+      lappend tt $e
+   }
+   #puts "DEBUG: vecsub_mic $A - $B = $t ... $tt"
+   return $tt
+}
