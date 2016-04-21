@@ -1,3 +1,23 @@
+# CFACV -- a simple collective-variables module for NAMD
+#
+# Cameron F Abrams 2016
+# Drexel University, Philadelphia, Pennsylvania
+#
+# cameronabrams@gmail.com
+#
+# makefile for cfacv.so, libgenericdataspace.so
+# forcesFromLog and Reconstruct (for Single-Sweep)
+
+CC=gcc
+
+GSL = -lgsl -lgslcblas
+LIBS += -lm
+
+OBJ += measurements.o
+OBJ += cfacv.o
+
+all: cfacv.so ForcesFromLog Reconstruct
+
 measurements.o: 	measurements.c measurements.h
 	gcc -O3 -c -fpic -o $@ measurements.c
 
@@ -35,6 +55,15 @@ cfacv_wrap.c: cfacv.c cfacv.i cfacv.h
 
 centers.o:      centers.c centers.h
 	gcc -O3 -c -fpic -o $@ centers.c
+
+basisrep.o:     basisrep.c basisrep.h
+	gcc -O3 -c -fpic -o $@ basisrep.c
+
+Reconstruct.o:   Reconstruct.c
+	gcc -O3 -c -fpic -o $@ Reconstruct.c
+
+Reconstruct:  basisrep.o Reconstruct.o
+	gcc -O3 -o ../bin/Reconstruct Reconstruct.o basisrep.o -lm -lgsl -lgslcblas
 
 clean:
 	rm *.o *.so *_wrap.c ../lib/*.so *~

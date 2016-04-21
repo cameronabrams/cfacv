@@ -41,25 +41,6 @@
 #define EPSILON 1.0e-6
 #endif
 
-char * next_word ( char * p ) {
-  if (p&&*p) {
-    while (*p&&!isspace(*(p++)));
-    while (*p&&isspace(*(p++)));
-    if (*p) return p;
-  }
-  return NULL;
-}
-
-int sscanf_stringList ( char * str, char ** slist, int n ) {
-  if (str) {
-    char * p=str;
-    int i=0;
-    sscanf(p,"%s",slist[i++]);
-    while (p=next_word(p)) sscanf(p,"%s",slist[i++]);
-    return (i==n);
-  }
-}
-
 /* EXPERIMENTAL:  Monte Carlo optimization of quadrature points and sigma */
 typedef struct MC {
   int nc;
@@ -105,7 +86,7 @@ typedef struct FORCE_SAMPLE {
   int z;       // zeroed for begin below threshold
 } fSamp;
 
-fSamp * read_samples ( int * n, char * fn, int D, int quiet ) {
+fSamp * read_samples ( int * n, char * fn, int D, int quiet, int * per, double * dom, char ** cv_keywords ) {
   FILE * fp = stdin;
   char scrln[2048];
   int i=0;
@@ -113,7 +94,6 @@ fSamp * read_samples ( int * n, char * fn, int D, int quiet ) {
   char * c;
   int j;
   int ndata, ncv;
-  char ** keyword;
   double * datalist;
 
   if (fn) {
@@ -121,25 +101,39 @@ fSamp * read_samples ( int * n, char * fn, int D, int quiet ) {
   }
 
   /* read past comments */
-  while (fgets(scrln,20,fp) && scrln[0]=='#');
+  while (fgets(scrln,2048,fp) && scrln[0]=='#');
   /* read the required line and the blank line */
   sscanf(scrln,"%i %i",&ncv,&ndata);
   if (ncv!=D) {
     fprintf(stderr,"ERROR: mismatch of CV space dimensionality\n");
+    fprintf(stderr,"       expected %i, got %i\n",D,ncv);
     exit(-1);
   }
-  keyword=(char**)malloc(ncv*sizeof(char*));
-  for (j=0;j<ncv;j++) keyword[i]=(char*)malloc(100*sizeof(char));
   /* read and parse the line that provides a keyword description for each CV */
-  fgets(scrln,1000,fp);
-  if (sscanf_stringList(scrln,keyword,ncv)) {
+  fgets(scrln,2048,fp);
+  if (sscanf_stringList(scrln,cv_keywords,ncv)) {
     fprintf(stderr,"ERROR: could not read keyword list from %s.\n",fn);
     exit(-1);
   }
+  /* based on keywords, assign each per flag and domain size */
+  for (j=0;j<D;j++) {
+    if (!strcmp(cv_keywords[j],"DIHED")) { per[j]=1; dom[j]=2*M_PI; }
+    else { per[j]=0; dom[j]=0.0; }
+  }
+  fprintf(stdout,"# periodicities and domains: ");
+  for (j=0;j<D;j++) {
+    fprintf(stdout," %s[%i,%.5lf]",cv_keywords[j],per[j],dom[j]);
+  }
+  fprintf(stdout,"\n");
+
+  /* Read the blank line */
+  fgets(scrln,2048,fp);
+
   /* allocate the data array */
   data = (fSamp*)malloc(ndata*sizeof(fSamp));
   datalist = (double*)malloc(2*ncv*sizeof(double));
 
+  /* read the data */
   for (i=0;i<ndata;i++) {
     d=&data[i];
     d->ncv=ncv;
@@ -152,7 +146,7 @@ fSamp * read_samples ( int * n, char * fn, int D, int quiet ) {
       fprintf(stderr,"ERROR: could not read data on line %i from %s.\n",i,fn);
       exit(-1);
     }
-    if (j=0;j<ncv;j++) {
+    for (j=0;j<ncv;j++) {
       d->r[j]=datalist[j];
       d->f[j]=datalist[ncv+j];
     }
@@ -195,8 +189,9 @@ int write_samples ( fSamp  * data, int n, char * fn, int quiet, char ** cv_keywo
 /* Sets up the set of basis function centers, where each center is located
  * on a distinct sample site (a "sample-congruent" basis set).
  */
-bCntr * SetupSampleCongruentBasisCenters ( fSamp * data, int nD, double sig, int * nC ) {
+bCntr * SetupSampleCongruentBasisCenters ( fSamp * data, int nD, int D, double sig, int * nC ) {
   int i;
+  // one basis center per center
   bCntr * bsc = (bCntr*)malloc(nD*sizeof(bCntr));
   fSamp * dp;
   bCntr * bp;
@@ -204,17 +199,18 @@ bCntr * SetupSampleCongruentBasisCenters ( fSamp * data, int nD, double sig, int
   for (i=0;i<nD;i++) {
     dp=&data[i];
     bp=&bsc[i];
+    bp->r=(double*)malloc(D*sizeof(double));
     memcpy(bp->r,dp->r,dp->ncv*sizeof(double));
-    //fprintf(stderr,"# basis center %i at %.5lf %.5lf %.5lf\n",i,bp->r[0],bp->r[1],bp->r[2]);
     bp->s=sig;
     bp->a=0.0;
-    bp->i=i;
+    bp->i=i; 
+    bp->D=D;
   }
   *nC=nD;
   return bsc;
 }
 
-bCntr * ReadBasisCenters ( char * fn, double sig, int * nC ) {
+bCntr * ReadBasisCenters ( char * fn, double sig, int * nC, int D ) {
   bCntr * bsc = NULL;
   bCntr * bp;
   char scrln[255];
@@ -233,10 +229,12 @@ bCntr * ReadBasisCenters ( char * fn, double sig, int * nC ) {
     while (fgets(scrln,255,fp)) {
       if (scrln[0]!='#') {
 	bp=&bsc[i];
-	sscanf(scrln,"%lf %lf %lf",bp->r[0],bp->r[1],bp->r[2]);
+        bp->r=(double*)malloc(D*sizeof(double));
+	sscanf_doubleList(scrln,bp->r,D);
 	bp->s=sig;
 	bp->a=0.0;
 	bp->i=i;
+        bp->D=D;
 	i++;
       }
     }
@@ -254,7 +252,7 @@ bCntr * ReadBasisCenters ( char * fn, double sig, int * nC ) {
  * B_{ik} = B_{ki} = \sum_{j=1}{n_D}\nabla_{\vec{z}_j}\phi_i({\vec{z}_j})\dot\nabla_{\vec{z}_j}\phi_k({\vec{z}_j})
  *
  */
-double * B_matrix ( fSamp * data, int nD, bCntr * bsc, int nC ) {
+double * B_matrix ( fSamp * data, int nD, bCntr * bsc, int nC, int D, int * per, double * dom ) {
   int i,j,k,ind;
   double * B = (double*)malloc(nC*nC*sizeof(double));
   double Zjk[data[0].ncv], Zji[data[0].ncv];
@@ -274,11 +272,11 @@ double * B_matrix ( fSamp * data, int nD, bCntr * bsc, int nC ) {
       B[ind]=0.0; // B[i][k]
       for (j=0;j<nD;j++) {
 	jp=&data[j];
-	vecdiff(Zjk,jp->r,kp->r,jp->ncv,jp->per,jp->doms);
-	vecdiff(Zji,jp->r,ip->r,jp->ncv,jp->per,jp->doms);
+	vecdiff(Zjk,jp->r,kp->r,D,per,dom);
+	vecdiff(Zji,jp->r,ip->r,D,per,dom);
 	zjk=norm(Zjk,jp->ncv);
 	zji=norm(Zji,jp->ncv);
-	dot=(zjk>0&&zji>0)?vecdot(Zjk,Zji,jp->ncv)/zjk/zji:0.0;
+	dot=(zjk>0&&zji>0)?vecdot(Zjk,Zji,D)/zjk/zji:0.0;
 	kernel(zjk,kp->s,&phi_jk,&gphi_jk);
 	kernel(zji,ip->s,&phi_ji,&gphi_ji);
 	//#if MODIFIED_SINGLE_SWEEP
@@ -299,10 +297,10 @@ double * B_matrix ( fSamp * data, int nD, bCntr * bsc, int nC ) {
 }
 
 /* creates, populates, and returns the c-vector. */
-double * c_vector ( fSamp * data, int nD, bCntr * bsc, int nC ) {
+double * c_vector ( fSamp * data, int nD, bCntr * bsc, int nC, int D, int * per, double * dom ) {
   int k,j;
   double * c = (double*)malloc(nC*sizeof(double));
-  double Zjk[SDIM], zjk, dot;
+  double Zjk[D], zjk, dot;
   double nm;
   double phi;
   double gphi;
@@ -315,14 +313,13 @@ double * c_vector ( fSamp * data, int nD, bCntr * bsc, int nC ) {
     c[k]=0.0;
     for (j=0;j<nD;j++) {
       jp=&data[j];
-      // to do -- use minimum image convention
-      vecdiff(Zjk,jp->r,kp->r,SDIM);
-      zjk=norm(Zjk,SDIM);
-      dot=(zjk>0)?vecdot(jp->f,Zjk,SDIM)/zjk:0.0;
+      vecdiff(Zjk,jp->r,kp->r,D,per,dom);
+      zjk=norm(Zjk,D);
+      dot=(zjk>0)?vecdot(jp->f,Zjk,D)/zjk:0.0;
       kernel(zjk,kp->s,&phi,&gphi);
       //#if MODIFIED_SINGLE_SWEEP
       if (_modified_single_sweep_) {
-	ff=sqrt(norm(jp->f,SDIM))+EPSILON;
+	ff=sqrt(norm(jp->f,D))+EPSILON;
       } else {
 	//#else
 	ff=1.0;
@@ -350,7 +347,7 @@ double * a_vector ( gsl_vector * A, int n ) {
 
 /* Must reconstruct free energy at each sample site in order to compute
    the error in the forces. */
-lRecon * ReconstructAtSamples ( fSamp * data, int nD, bCntr * bsc, int nC, double * relErr ) {
+lRecon * ReconstructAtSamples ( fSamp * data, int nD, int D, bCntr * bsc, int nC, int * per, double * dom, double * relErr ) {
   int i,j;
   fSamp * ip;
   lRecon * recon, * irp;
@@ -360,10 +357,12 @@ lRecon * ReconstructAtSamples ( fSamp * data, int nD, bCntr * bsc, int nC, doubl
   gsl_vector_view c;
   gsl_vector * a, * residual;
 
-  B_data=B_matrix(data,nD,bsc,nC);
+  B_data=B_matrix(data,nD,bsc,nC,D,per,dom);
+  fprintf(stdout,"# B-matrix built.\n");
   A=gsl_matrix_view_array(B_data,nC,nC);
   B=gsl_matrix_view_array(B_data,nC,nC);
-  c_data=c_vector(data,nD,bsc,nC);
+  c_data=c_vector(data,nD,bsc,nC,D,per,dom);
+  fprintf(stdout,"# c-vector built.\n");
   c=gsl_vector_view_array(c_data,nC);
   a=gsl_vector_alloc(nC);
   residual=gsl_vector_alloc(nC);
@@ -389,29 +388,77 @@ lRecon * ReconstructAtSamples ( fSamp * data, int nD, bCntr * bsc, int nC, doubl
   for (i=0;i<nC;i++) {
     ip=&data[i];
     irp=&recon[i];
+    irp->f=(double*)malloc(D*sizeof(double));
+    irp->r=(double*)malloc(D*sizeof(double));
     irp->i=i;
-    memcpy(irp->r,ip->r,SDIM*sizeof(double));
-    localReconstruct(irp,bsc,nC);
-    for (j=0;j<SDIM;j++) {
+    memcpy(irp->r,ip->r,D*sizeof(double));
+    //fprintf(stdout,"# local reconstruct at center %i.\n",i);
+    localReconstruct(irp,bsc,nC,D,per,dom);
+    for (j=0;j<D;j++) {
       *relErr+=(ip->f[j]-irp->f[j])*(ip->f[j]-irp->f[j]);
       f2s+=ip->f[j]*ip->f[j];
     }
   }
 
   *relErr/=f2s;
+  fprintf(stdout,"# Reconstruct ends.  Error %.5le\n",*relErr);
 
   return recon;
 
 }
 
-int generate_dxmap ( bCntr * bsc, int nC, double S, char * fn ) {
+int writeMap ( bCntr * bsc, int nC, int D, double sig, char * fn, int * per, double * dom, double mapres ) {
+  /* doing this Q&D first for dihedrals only */
+  int i,j,ii;
+  FILE * fp;
+  lRecon * gp = lRecon_new(D);
+  double mn[2] = {-M_PI,-M_PI};
+  double mx[2] = {M_PI,M_PI};
+  int ip[2]={2*M_PI/mapres,2*M_PI/mapres};
+  int jp[2]={2*M_PI/mapres,2*M_PI/mapres};
+  int nGrid=ip[0]*ip[1];
+  double A[nGrid],Amin=1.e50,thisA=0.0;
+
+  if (D!=2) {
+   fprintf(stderr,"ERROR: can only map 2-D cv spaces.\n");
+   return -1;
+  }
+
+  ii=0;
+  for (i=0;i<ip[0];i++) {
+    gp->r[0]=mn[0]+i*mapres;
+    for (j=0;j<ip[1];j++) {
+      gp->r[1]=mn[1]+j*mapres;
+      localReconstruct(gp,bsc,nC,D,per,dom);
+      A[ii++]=thisA=gp->e;
+      if (thisA<Amin) Amin=thisA;
+    }
+  }
+
+  ii=0;
+  fp=fopen(fn,"w");
+  fprintf(fp,"# single-sweep reconstruction\n");
+  for (i=0;i<ip[0];i++) {
+    for (j=0;j<jp[0];j++) {
+      fprintf(fp,"%.3lf %.3lf %.5le\n",mn[0]+i*mapres,mn[0]+j*mapres,A[ii++]-Amin);
+    }
+    fprintf(fp,"\n"); // blank line for gnuplot
+  }
+  fclose(fp);
+  fprintf(stdout,"# Wrote map %s.\n",fn);
+
+  return 0;
+
+}
+
+int generate_dxmap ( bCntr * bsc, int nC, int D, double S, char * fn, int * per, double * dom) {
   int i,j,k,m,ii;
   FILE * fp;
-  double thisz[SDIM],d[SDIM],nm;
+  double thisz[D],d[D],nm;
   double mx[3]={-1.e99,-1.e99,-1.e99},mn[3]={1.e99,1.e99,1.e99};
-  double sp[SDIM];
-  int isp[SDIM];
-  lRecon gridpnt, *gp=&gridpnt;
+  double sp[D];
+  int isp[D];
+  lRecon *gp=lRecon_new(D);
   double thisA,*A,Amin;
   int counter;
   int nGrid=0;
@@ -422,7 +469,7 @@ int generate_dxmap ( bCntr * bsc, int nC, double S, char * fn ) {
   sig=0.0;
   for (i=0;i<nC;i++) {
     mp=&bsc[i];
-    for (j=0;j<SDIM;j++) {
+    for (j=0;j<D;j++) {
       if (mp->r[j]>mx[j]) mx[j]=mp->r[j];
       if (mp->r[j]<mn[j]) mn[j]=mp->r[j];
       if (mp->s>sig) sig=mp->s;
@@ -456,7 +503,7 @@ int generate_dxmap ( bCntr * bsc, int nC, double S, char * fn ) {
       gp->r[1]=(double)(j+mn[1]);
       for (k=0;k<isp[2];k++) {
 	gp->r[2]=(double)(k+mn[2]);
-	localReconstruct(gp,bsc,nC);
+	localReconstruct(gp,bsc,nC,D,per,dom);
 	A[ii++]=gp->e;
 	if (thisA<Amin) Amin=thisA;
       }
@@ -496,6 +543,7 @@ int generate_dxmap ( bCntr * bsc, int nC, double S, char * fn ) {
 
 }
 
+/* EXPERIMENTAL -- MC
 bCntr * DisplaceBasisCenters_All ( bCntr * bsc, int nC, double dR, double dS, gsl_rng * r ) {
   bCntr * b = malloc(nC*sizeof(bCntr));
   int i;
@@ -511,9 +559,6 @@ bCntr * DisplaceBasisCenters_All ( bCntr * bsc, int nC, double dR, double dS, gs
     dy = dR*(0.5-gsl_rng_uniform(r));
     dz = dR*(0.5-gsl_rng_uniform(r));
     ds = dS*(0.5-gsl_rng_uniform(r));
-/*     fprintf(stderr,"#MC: displacing center %i by (% .3lf,% .3lf,% .3lf)\n", */
-/* 	    i,dx,dy,dz); */
-/*     fflush(stderr); */
     b[i].r[0]+=dx;
     b[i].r[1]+=dy;
     b[i].r[2]+=dz;
@@ -543,12 +588,25 @@ bCntr * DisplaceBasisCenters_Random ( bCntr * bsc, int nC, double dR, double dS,
 	  i,dx,dy,dz,b[i].s);
   return b;
 }
+EXPERIMENTAL MC */
+
+int get_dimensionality ( char * cvinp_fn ) {
+   FILE * fp = fopen(cvinp_fn,"r");
+   char ln[255];
+   int i=0;
+   while (fgets(ln,255,fp)) i++;
+   fclose(fp);
+   return i;
+}
 
 int main ( int argc, char * argv[] ) {
   fSamp * data; // force samples from input file
   lRecon * recon; // reconstructed forces
   bCntr * bsc; // basis centers
   int D; // number of CV's, aka, dimensionality of CV space
+  char ** cv_keywords; //
+  int * per; // periodic bc flags, one per dimension
+  double * dom; // periodic domain size of each dimension
   int nD; // number of force samples
   int nC; // number of basis centers (need not equal nD, but usually does)
   int nR; // number of reconstructed force samples
@@ -562,7 +620,6 @@ int main ( int argc, char * argv[] ) {
   int map=0;
   double S=2.0;
   int quiet=0;
-  int D = -1;
   double fmag_lowthresh=0.0;
   double fmag_hithresh=0.0;
 
@@ -570,10 +627,12 @@ int main ( int argc, char * argv[] ) {
   char * fsinp_fn = "forces.dat";
   char * bsout_fn = "basis_set.out";
   char * rcout_fn = "reconstruction.out";
+  char * mpout_fn = "femap.dat";
   char * dxout_fn = "A_map.dx";
+  double mapres=0.0;
 
   /* EXPERIMENTAL:  Monte-carlo optimization */
-  mct * mc = NULL;
+ // mct * mc = NULL;
 
   /* Functionality for input of basis centers that may be 
      different from the centers at which forces were measured. */
@@ -594,16 +653,18 @@ int main ( int argc, char * argv[] ) {
     else if (!strcmp(argv[i],"-bs")) bsout_fn=argv[++i];
     else if (!strcmp(argv[i],"-rc")) rcout_fn=argv[++i];
     else if (!strcmp(argv[i],"-dx")) dxout_fn=argv[++i];
+    else if (!strcmp(argv[i],"-mf")) mpout_fn=argv[++i];
+    else if (!strcmp(argv[i],"-mapres")) mapres=atof(argv[++i]);
     else if (!strcmp(argv[i],"-mod")) _modified_single_sweep_=1;
     else if (!strcmp(argv[i],"-i")) {
       inputBasisCenters=1;
       bsin_fn=argv[++i];
     }
     /* EXPERIMENTAL:  Monte-carlo optimization */
-    else if (!strcmp(argv[i],"-mc")) {
-      mc = malloc(sizeof(mct));
-      sscanf(argv[++i],"%i,%lu,%lf,%lf,%s",&mc->nc,&mc->Seed,&mc->dR,&mc->dS,mc->flag);
-    }
+   // else if (!strcmp(argv[i],"-mc")) {
+     // mc = malloc(sizeof(mct));
+      //sscanf(argv[++i],"%i,%lu,%lf,%lf,%s",&mc->nc,&mc->Seed,&mc->dR,&mc->dS,mc->flag);
+    //}
   }
 
   fprintf(stdout,"# Reconstruct.c begins.\n");
@@ -612,17 +673,20 @@ int main ( int argc, char * argv[] ) {
   fprintf(stdout,"# Dimensionality of CV space from %s: %i\n",cvinp_fn,D);
 
   /* Read data from the formatted forces.dat file from gather.tcsh */
-  if (data=read_samples(&nD,fsinp_fn,D,quiet)) {
-    fprintf(stderr,"ERROR reading force samples from %s.\n",fn);
-    exit(-1);
-  }
-  
-  if (inputBasisCenters) {
-    bsc=readBasisSet(&nC,bsin_fn);
-  } else {
-    bsc=SetupSampleCongruentBasisCenters(data,nD,sig,&nC);
-  }
-  recon=ReconstructAtSamples(data,nD,bsc,nC,&Error);
+  per=(int*)malloc(D*sizeof(int));
+  dom=(double*)malloc(D*sizeof(double));
+  cv_keywords=(char**)malloc(D*sizeof(char*));
+  for (i=0;i<D;i++) cv_keywords[i]=(char*)malloc(100*sizeof(char));
+  data=read_samples(&nD,fsinp_fn,D,quiet,per,dom,cv_keywords);
+  fprintf(stdout,"# Read in %i force samples from %s.\n",nD,fsinp_fn);
+ 
+  //if (inputBasisCenters) {
+    //bsc=readBasisSet(&nC,bsin_fn);
+  //} else {
+    bsc=SetupSampleCongruentBasisCenters(data,nD,D,sig,&nC);
+  fprintf(stdout,"# Set up %i basis centers w/ sig %.5lf\n",nC,sig);
+ // }
+  recon=ReconstructAtSamples(data,nD,D,bsc,nC,per,dom,&Error);
   nR=nD;
 
   if (!quiet) fprintf(stdout,"# sigma  rel-resid-error (kcal/mol)\n");
@@ -632,14 +696,14 @@ int main ( int argc, char * argv[] ) {
     sig+=dsig;
     for (;sig<=sig1;sig+=dsig) {
       free(bsc);
-      bsc=SetupSampleCongruentBasisCenters(data,nD,sig,&nC);
+      bsc=SetupSampleCongruentBasisCenters(data,nD,D,sig,&nC);
       free(recon);
-      recon=ReconstructAtSamples(data,nD,bsc,nC,&Error);
+      recon=ReconstructAtSamples(data,nD,D,bsc,nC,per,dom,&Error);
       fprintf(stdout,"%.8lf %.8lf\n",sig,sqrt(Error));fflush(stdout);
     }
   }
 
-  if (mc) {
+ /* if (mc) {
     int c;
     lRecon * oldrecon, * newrecon;
     bCntr * oldbsc, * newbsc;
@@ -672,13 +736,15 @@ int main ( int argc, char * argv[] ) {
       fprintf(stderr,"#MC %i: %.5lf (%.5lf)\n",c,sqrt(Error),sqrt(newError));
     }
   }
+*/
 
-  writeBasisSet(bsc,nC,bso_fn);
-  writeReconstruction(recon,nR,rcn_fn);
+  writeBasisSet(bsc,nC,D,bsout_fn);
+  writeReconstruction(recon,nR,D,rcout_fn);
+  writeMap(bsc,nC,D,sig,mpout_fn,per,dom,mapres);
 
-  if (map) {
-    generate_dxmap(bsc,nC,s,map_fn);
-  }
+ /* if (map) {
+    generate_dxmap(bsc,nC,s,map_fn,D,per,dom);
+  } */
 
   if (!quiet) fprintf(stdout,"# program ends.\n");
 }
