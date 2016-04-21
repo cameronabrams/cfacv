@@ -13,57 +13,43 @@ CC=gcc
 GSL = -lgsl -lgslcblas
 LIBS += -lm
 
+CFLAGS += -O3
+
 OBJ += measurements.o
 OBJ += cfacv.o
+OBJ += centers.o
 
-all: cfacv.so ForcesFromLog Reconstruct
+SSOBJ += basisrep.o
 
-measurements.o: 	measurements.c measurements.h
-	gcc -O3 -c -fpic -o $@ measurements.c
+all: cfacv.so genericdataspace.so ForcesFromLog Reconstruct
 
-measurements_wrap.o:	measurements_wrap.c
-	gcc -O3 -c -fpic -o $@ measurements_wrap.c
+%.so:  $(OBJ) %_wrap.o
+	$(CC) $(CCFLAGS) -shared -o $@ $^ $(LIBS)
+	cp $@ ../lib/
 
-measurements_wrap.c:	measurements.c measurements.h measurements.i
-	swig -tcl8 measurements.i
+%.o: %.c
+	$(CC) -c -fpic $(CCFLAGS) $< $(LIBS)
 
-cfacv.so:  cfacv.o cfacv_wrap.o measurements.o centers.o 
-	gcc -O3 -shared -o $@ cfacv.o cfacv_wrap.o measurements.o centers.o -lm
-	cp $@ ../lib
+%_wrap.c: %.i %.c %.h
+	swig -tcl8 $<
 
-libgenericdataspace.so: genericdataspace.o genericdataspace_wrap.o
-	gcc -O3 -shared -o $@ genericdataspace.o genericdataspace_wrap.o -lm
-	cp $@ ../lib
+ForcesFromLog: ForcesFromLog.c
+	$(CC) $(CCFLAGS) -o $@ $^ $(LIBS)
+	cp $@ ../bin/
 
-genericdataspace.o:     genericdataspace.c genericdataspace.h
-	gcc -O3 -c -fpic -o $@ genericdataspace.c
+Reconstruct:  $(SSOBJ) Reconstruct.o
+	$(CC) $(CCFLAGS) -o $@ $^ $(LIBS) $(GSL)
+	cp $@ ../bin
 
-genericdataspace_wrap.o:        genericdataspace_wrap.c
-	gcc -O3 -c -fpic -o $@ $?
+measurements.o : measurements.h
+centers.o : centers.h
+cfacv.h : measurements.h centers.h wrapcoords.h 
+cfacv.o : cfacv.h
+Reconstruct.c: basisrep.h
 
-genericdataspace_wrap.c:        genericdataspace.c genericdataspace.h genericdataspace.i
-	swig -tcl8 genericdataspace.i
 
-cfacv.o:      cfacv.c cfacv.h wrapcoords.h
-	gcc -O3 -c -fpic -o $@ cfacv.c
-
-cfacv_wrap.o: cfacv_wrap.c
-	gcc -O3 -c -fpic -o $@ $?
-
-cfacv_wrap.c: cfacv.c cfacv.i cfacv.h
-	swig -tcl8 cfacv.i
-
-centers.o:      centers.c centers.h
-	gcc -O3 -c -fpic -o $@ centers.c
-
-basisrep.o:     basisrep.c basisrep.h
-	gcc -O3 -c -fpic -o $@ basisrep.c
-
-Reconstruct.o:   Reconstruct.c
-	gcc -O3 -c -fpic -o $@ Reconstruct.c
-
-Reconstruct:  basisrep.o Reconstruct.o
-	gcc -O3 -o ../bin/Reconstruct Reconstruct.o basisrep.o -lm -lgsl -lgslcblas
+.PHONY: clean force
 
 clean:
-	rm *.o *.so *_wrap.c ../lib/*.so *~
+	rm -f *.o *.so *_wrap.c
+

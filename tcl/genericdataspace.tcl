@@ -7,7 +7,8 @@ if {![info exists CFACV_BASEDIR]} {
   }
 }
 
-load ${CFACV_BASEDIR}/lib/libgenericdataspace.so libgenericdataspace
+load ${CFACV_BASEDIR}/lib/genericdataspace.so genericdataspace
+
 ###########################################################
 # Primitive data handling procedures
 ###########################################################

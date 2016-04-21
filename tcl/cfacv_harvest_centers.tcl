@@ -16,7 +16,7 @@
 # Shared object libraries required:
 #
 # $CFACV_BASEDIR/lib/cfacv.so
-# $CFACV_BASEDIR/lib/libgenericdataspace.so
+# $CFACV_BASEDIR/lib/genericdataspace.so
 #
 # Cameron F Abrams
 # 2010-2016
