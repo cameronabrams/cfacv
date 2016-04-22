@@ -23,7 +23,11 @@ SSOBJ += basisrep.o
 
 all: cfacv.so genericdataspace.so ForcesFromLog Reconstruct
 
-%.so:  $(OBJ) %_wrap.o
+cfacv.so:  $(OBJ) cfacv_wrap.o
+	$(CC) $(CCFLAGS) -shared -o $@ $^ $(LIBS)
+	cp $@ ../lib/
+
+genericdataspace.so:  genericdataspace.o genericdataspace_wrap.o
 	$(CC) $(CCFLAGS) -shared -o $@ $^ $(LIBS)
 	cp $@ ../lib/
 

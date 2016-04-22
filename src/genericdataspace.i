@@ -1,4 +1,4 @@
-%module libgenericdataspace
+%module genericdataspace
 %include carrays.i
 %array_functions(double, array);
 %array_functions(int, arrayint);
