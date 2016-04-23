@@ -1,0 +1,2 @@
+1 0 {k 0.0} {rf PERIODIC} {TAMDkT 9.5} {TAMDgamma 0.0} {TAMDdt 0.001} 
+0 1 {k 0.0} {rf PERIODIC} {TAMDkT 9.5} {TAMDgamma 0.0} {TAMDdt 0.001}
