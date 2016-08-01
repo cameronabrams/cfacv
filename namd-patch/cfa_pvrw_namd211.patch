@@ -1,0 +1,465 @@
+diff -Naur src/Broadcasts.h src-modified/Broadcasts.h
+--- src/Broadcasts.h	2015-03-03 12:54:14.000000000 -0500
++++ src-modified/Broadcasts.h	2016-07-13 10:09:46.509087765 -0400
+@@ -31,6 +31,9 @@
+   SCRIPT_ATOMSEND,
+   SCRIPT_ATOMRECV,
+   SCRIPT_MINIMIZE,
++#ifdef CFA_PVRW
++  SCRIPT_HITBOUNDARY,
++#endif
+   SCRIPT_DUMMY
+ };
+ 
+@@ -51,6 +54,9 @@
+ #ifdef MEASURE_NAMD_WITH_PAPI
+   papiMeasureTag,
+ #endif
++#ifdef CFA_PVRW
++  hitBoundaryTag,
++#endif
+   dummyTag
+ };
+ 
+@@ -72,6 +78,9 @@
+ #ifdef MEASURE_NAMD_WITH_PAPI
+   SimpleBroadcastObject<int> papiMeasureBarrier;
+ #endif
++#ifdef CFA_PVRW
++  SimpleBroadcastObject<int> hitBoundary;
++#endif
+ 
+   ControllerBroadcasts(const LDObjHandle *ldObjPtr = 0) : 
+     velocityRescaleFactor(velocityRescaleFactorTag, ldObjPtr),
+@@ -88,7 +97,10 @@
+ #ifdef MEASURE_NAMD_WITH_PAPI
+ 	papiMeasureBarrier(papiMeasureTag, ldObjPtr),
+ #endif
+-	traceBarrier(traceBarrierTag, ldObjPtr)
++#ifdef CFA_PVRW
++      hitBoundary(hitBoundaryTag, ldObjPtr),
++#endif
++      traceBarrier(traceBarrierTag, ldObjPtr)
+   { ; }
+ };
+ 
+diff -Naur src/GlobalMasterTcl.C src-modified/GlobalMasterTcl.C
+--- src/GlobalMasterTcl.C	2015-10-22 01:03:13.000000000 -0400
++++ src-modified/GlobalMasterTcl.C	2016-02-09 14:15:55.660579924 -0500
+@@ -5,6 +5,7 @@
+ **/
+ 
+ #include "InfoStream.h"
++#include "BackEnd.h"
+ #include "Node.h"
+ #include "Molecule.h"
+ #include "ReductionMgr.h"
+@@ -518,6 +519,41 @@
+ }
+ #endif
+ 
++/* CFA: The boundary flag broadcast */
++int GlobalMasterTcl::Tcl_setboundaryflag(ClientData clientData,
++     Tcl_Interp *interp, int argc, char *argv[]) {
++  GlobalMasterTcl *self = (GlobalMasterTcl *)clientData;
++  if (argc != 3) {
++    Tcl_SetResult(interp,"wrong # args",TCL_VOLATILE);
++    return TCL_ERROR;
++  }
++  int step;
++  int value;
++  if (Tcl_GetInt(interp,argv[1],&step) != TCL_OK) {
++    return TCL_ERROR;
++  }
++  
++  if (Tcl_GetInt(interp,argv[2],&value) != TCL_OK) {
++    return TCL_ERROR;
++  }
++  //    fprintf(stdout,"CFA: GlobalMasterTcl::Tcl_setboundaryflag: step %i value %i\n",
++  //  step,value);fflush(stdout);
++  self->boundary_flag_step=step;
++  self->boundary_flag_value=value;
++  //fprintf(stdout,"CFA: GlobalMasterTcl::Tcl_setboundaryflag: done.\n");fflush(stdout);
++
++  return TCL_OK;
++}
++
++int GlobalMasterTcl::Tcl_exitsafe(ClientData clientData,
++      Tcl_Interp *interp, int argc, char *argv[]) {
++  GlobalMasterTcl *self = (GlobalMasterTcl *)clientData;
++
++  CkPrintf("TCL:  ExitSafe called.\n");
++  BackEnd::exit();
++  return TCL_OK;
++}
++
+ 
+ GlobalMasterTcl::GlobalMasterTcl() {
+   DebugM(3,"Constructing GlobalMasterTcl\n");
+@@ -551,6 +587,8 @@
+   interp = Node::Object()->getScript()->interp;
+   DebugM(1,"here\n");
+ 
++  broadcast = new ControllerBroadcasts;
++
+   Tcl_CreateCommand(interp, "atomid", Tcl_atomid,
+     (ClientData) (Node::Object()->molecule), (Tcl_CmdDeleteProc *) NULL);
+ 
+@@ -607,6 +645,11 @@
+       (ClientData) this, (Tcl_CmdDeleteProc *) NULL);
+   Tcl_CreateCommand(interp, (char *)"getstep", Tcl_getstep,
+     (ClientData) this, (Tcl_CmdDeleteProc *) NULL);
++  Tcl_CreateCommand(interp, (char *)"setboundaryflag", Tcl_setboundaryflag,
++    (ClientData) this, (Tcl_CmdDeleteProc *) NULL);  //added by TANG
++  Tcl_CreateCommand(interp, "exitsafe", Tcl_exitsafe,
++    (ClientData) this, (Tcl_CmdDeleteProc *) NULL);  //added by TANG
++
+ #else
+ 
+   NAMD_die("Sorry, tclForces is not available; built without TCL.");
+@@ -638,6 +681,9 @@
+   }
+ #endif
+ 
++  //problem here during minimization
++  broadcast->hitBoundary.publish(boundary_flag_step,boundary_flag_value);
++
+   reduction->submit();
+ 
+ }
+diff -Naur src/GlobalMasterTcl.h src-modified/GlobalMasterTcl.h
+--- src/GlobalMasterTcl.h	2015-10-22 01:03:13.000000000 -0400
++++ src-modified/GlobalMasterTcl.h	2016-07-13 10:07:13.170004767 -0400
+@@ -16,11 +16,22 @@
+ #include <tcl.h>
+ #endif
+ 
++#ifdef CFA_PVRW
++/* CFA: establishing a broadcast for voronoi cell violation */
++#include "Broadcasts.h"
++#endif
++
+ class GlobalMasterTcl : public GlobalMaster {
+  public:
+   GlobalMasterTcl();
+   ~GlobalMasterTcl();
+  protected:
++#ifdef CFA_PVRW
++  /* CFA: The boundary flag broadcast */
++  int boundary_flag_step;
++  int boundary_flag_value;
++  ControllerBroadcasts * broadcast;
++#endif
+   virtual void calculate();
+  private:
+   SubmitReduction *reduction;
+@@ -43,6 +54,11 @@
+   static int Tcl_loadtotalforces(ClientData, Tcl_Interp *, int, Tcl_Obj * const []);
+   static int Tcl_addforce(ClientData, Tcl_Interp *, int, Tcl_Obj * const []); 
+   static int Tcl_addenergy(ClientData, Tcl_Interp *, int, char **);
++#ifdef CFA_PVRW
++  /* CFA: The boundary flag broadcast */
++  static int Tcl_setboundaryflag(ClientData, Tcl_Interp *, int, char **);
++  static int Tcl_exitsafe(ClientData, Tcl_Interp *, int, char **);
++#endif
+ #endif
+ };
+ 
+diff -Naur src/Lattice.h src-modified/Lattice.h
+--- src/Lattice.h	2011-10-25 16:46:30.000000000 -0400
++++ src-modified/Lattice.h	2016-07-13 10:06:00.091918369 -0400
+@@ -28,6 +28,9 @@
+ {
+ public:
+   Lattice(void) : a1(0,0,0), a2(0,0,0), a3(0,0,0),
++#ifdef CFA_PVRW
++                  a1o(0,0,0), a2o(0,0,0), a3o(0,0,0),
++#endif
+                   b1(0,0,0), b2(0,0,0), b3(0,0,0),
+                   o(0,0,0), p1(0), p2(0), p3(0) {};
+ 
+@@ -43,6 +46,21 @@
+     set(A,B,C,o);
+   }
+ 
++#ifdef CFA_PVRW
++  // save the current lattice vector to a1o, etc.
++  void save(void) 
++  {
++    a1o=a1; a2o=a2; a3o=a3;
++  }
++
++  // restore the saved lattice vector
++  void restore(void)
++  {
++    a1=a1o; a2=a2o; a3=a3o;
++    recalculate();
++  }
++#endif
++
+   // sets lattice basis vectors and origin (fixed center)
+   void set(Vector A, Vector B, Vector C, Position Origin)
+   {
+@@ -248,6 +266,12 @@
+   Vector b() const { return a2; }
+   Vector c() const { return a3; }
+ 
++#ifdef CFA_PVRW
++  Vector ao() const { return a1o; }
++  Vector bo() const { return a2o; }
++  Vector co() const { return a3o; }
++#endif
++
+   // only if along x y z axes
+   int orthogonal() const {
+     return ( ! ( a1.y || a1.z || a2.x || a2.z || a3.x || a3.y ) );
+@@ -276,6 +300,9 @@
+ 
+ private:
+   Vector a1,a2,a3; // real lattice vectors
++#ifdef CFA_PVRW
++  Vector a1o, a2o, a3o; // storage
++#endif
+   Vector b1,b2,b3; // reciprocal lattice vectors (more or less)
+   Vector o; // origin (fixed center of cell)
+   int p1, p2, p3; // periodic along this lattice vector?
+diff -Naur src/main.C src-modified/main.C
+--- src/main.C	2015-01-16 19:31:44.000000000 -0500
++++ src-modified/main.C	2016-08-01 16:57:39.097314140 -0400
+@@ -157,6 +157,13 @@
+          << iINFO << "Please visit http://www.ks.uiuc.edu/Research/namd/\n"
+          << iINFO << "for updates, documentation, and support information.\n"
+ #endif
++#ifdef CFA_PVRW
++<< iINFO << "\n"
++<< iINFO << " *** POSITION-VELOCITY REWIND ENABLED ***\n"
++<< iINFO << " *** Cameron F. Abrams -- cameronabrams@gmail.com\n"
++<< iINFO << " *** Relevant messages in log are prepended with PVRW)\n"
++<< iINFO << " *** Tcl-forces must be enabled\n"
++#endif
+ << iINFO << "\n"
+ << iINFO << "Please cite Phillips et al., J. Comp. Chem. 26:1781-1802 (2005)\n"
+ << iINFO << "in all publications reporting results obtained with NAMD.\n"
+diff -Naur src/NamdTypes.h src-modified/NamdTypes.h
+--- src/NamdTypes.h	2013-07-10 13:20:46.000000000 -0400
++++ src-modified/NamdTypes.h	2016-07-13 10:01:19.340428246 -0400
+@@ -88,6 +88,10 @@
+ 
+ struct FullAtom : CompAtom, CompAtomExt{
+   Velocity velocity;
++#ifdef CFA_PVRW
++  Velocity velocityOld;
++  Position positionOld;
++#endif
+   Position fixedPosition;
+   Mass mass;
+   union{
+@@ -98,6 +102,9 @@
+   };  
+   int32 status;
+   Transform transform;
++#ifdef CFA_PVRW
++  Transform transformOld;
++#endif
+   int migrationGroupSize;
+   Real rigidBondLength;
+ 
+diff -Naur src/Sequencer.C src-modified/Sequencer.C
+--- src/Sequencer.C	2015-03-03 12:54:14.000000000 -0500
++++ src-modified/Sequencer.C	2016-08-01 16:25:48.182203866 -0400
+@@ -256,6 +256,12 @@
+ 
+     const int reassignFreq = simParams->reassignFreq;
+ 
++#ifdef CFA_PVRW
++    // declare the flag for checking for request to rewind velocities/positions
++    // assume it is 0
++    int doPosVelRewind = 0;
++#endif
++
+   if ( scriptTask == SCRIPT_RUN ) {
+ 
+ //    printf("Doing initial rattle\n");
+@@ -323,6 +329,11 @@
+ 
+     for ( ++step; step <= numberOfSteps; ++step )
+     {
++#ifdef CFA_PVRW
++      //      fprintf(stdout,"PVRW: begin step %i with state %i\n",step,doPosVelRewind);fflush(stdout);
++      if (!doPosVelRewind) {
++        saveOldPosVel();
++#endif
+       rescaleVelocities(step);
+       tcoupleVelocities(timestep,step);
+       berendsenPressure(step);
+@@ -347,12 +358,26 @@
+          } */
+ 
+       maximumMove(timestep);
++#ifdef CFA_PVRW
++      if ( !doPosVelRewind )
++#endif
+       if ( ! commOnly ) addVelocityToPosition(0.5*timestep);
+ 
+       // We add an Ornstein-Uhlenbeck integration step for the case of BAOAB (Langevin)
++#ifdef CFA_PVRW
++      if ( !doPosVelRewind )
++#endif
+       if ( simParams->langevinOn && simParams->langevin_useBAOAB ) langevinVelocities(timestep);
+ 
++#ifdef CFA_PVRW
++      if ( !doPosVelRewind ) 
++#endif
++
+       langevinPiston(step);
++
++#ifdef CFA_PVRW
++      if ( !doPosVelRewind )
++#endif
+       if ( ! commOnly ) addVelocityToPosition(0.5*timestep);
+ 
+       // impose hard wall potential for Drude bond length
+@@ -363,6 +388,9 @@
+       doNonbonded = !(step%nonbondedFrequency);
+       doFullElectrostatics = (dofull && !(step%fullElectFrequency));
+ 
++#ifdef CFA_PVWR
++      if ( !doPosVelRewind )
++#endif 
+       if ( zeroMomentum && doFullElectrostatics )
+         correctMomentum(step,slowstep);
+ 
+@@ -382,8 +410,25 @@
+       doEnergy = ! ( step % energyFrequency );
+       if ( accelMDOn && !accelMDdihe ) doEnergy=1;
+       if ( adaptTempOn ) doEnergy=1; 
++
++#ifdef CFA_PVRW
++      } else {
++	//	fprintf(stdout,"PVRW: restoring\n");fflush(stdout);
++	restoreOldPosVel();
++      }
++      runComputeObjects(doPosVelRewind || !(step%stepsPerCycle),step<numberOfSteps);
++#else
+       runComputeObjects(!(step%stepsPerCycle),step<numberOfSteps);
+- 
++#endif
++
++#ifdef CFA_PVRW
++      if (doTcl) {
++	//fprintf(stdout,"PVRW: Waiting for broadcast at step %i...\n",step);fflush(stdout);
++	doPosVelRewind = broadcast->hitBoundary.get(step);
++	//fprintf(stdout,"PVRW: Received broadcast of %i at step %i\n",doPosVelRewind,step);fflush(stdout);
++      }
++#endif
++      
+       rescaleaccelMD(step, doNonbonded, doFullElectrostatics); // for accelMD
+      
+       if ( staleForces || doTcl || doColvars ) {
+@@ -392,6 +437,9 @@
+       }
+ 
+       // reassignment based on full-step velocities
++#ifdef CFA_PVRW
++      if ( !doPosVelRewind )
++#endif
+       if ( !commOnly && ( reassignFreq>0 ) && ! (step%reassignFreq) ) {
+         reassignVelocities(timestep,step);
+         addForceToMomentum(-0.5*timestep);
+@@ -402,6 +450,9 @@
+         rattle1(-timestep,0);
+       }
+ 
++#ifdef CFA_PVRW
++      if ( ! doPosVelRewind )
++#endif
+       if ( ! commOnly ) {
+         langevinVelocitiesBBK1(timestep);
+         addForceToMomentum(timestep);
+@@ -415,7 +466,13 @@
+       }
+ 
+       // add drag to each atom's positions
++#ifdef CFA_PVRW
++      if ( !doPosVelRewind )
++#endif
+       if ( ! commOnly && movDragOn ) addMovDragToPosition(timestep);
++#ifdef CFA_PVRW
++      if ( !doPosVelRewind )
++#endif 
+       if ( ! commOnly && rotDragOn ) addRotDragToPosition(timestep);
+ 
+       rattle1(timestep,1);
+@@ -424,7 +481,10 @@
+ 
+       submitHalfstep(step);
+       if ( zeroMomentum && doFullElectrostatics ) submitMomentum(step);
+-
++      
++#ifdef CFA_PVRW
++      if ( !doPosVelRewind )
++#endif
+       if ( ! commOnly ) {
+         addForceToMomentum(-0.5*timestep);
+         if (staleForces || doNonbonded)
+@@ -1311,6 +1371,46 @@
+   patch->addVelocityToPosition(dt);
+ }
+ 
++#ifdef CFA_PVRW
++void Sequencer::saveOldPosVel ( void )
++{
++  FullAtom *a = patch->atom.begin();
++  int numAtoms = patch->numAtoms;
++  patch->lattice.save();
++  //  iout << "SAVING LATTICE " << patch->lattice.a() << " "
++  //    <<  patch->lattice.b() << " " << patch->lattice.c() << "\n";
++  //iout << "TO " <<  patch->lattice.ao() << " "
++  //     <<  patch->lattice.bo() << " " << patch->lattice.co() << "\n";
++  for(int i = 0; i < numAtoms; ++i ){
++    a[i].velocityOld.x = a[i].velocity.x;
++    a[i].velocityOld.y = a[i].velocity.y;
++    a[i].velocityOld.z = a[i].velocity.z;
++    a[i].positionOld.x = a[i].position.x;
++    a[i].positionOld.y = a[i].position.y;
++    a[i].positionOld.z = a[i].position.z;
++    a[i].transformOld = a[i].transform;
++  }
++}
++
++void Sequencer::restoreOldPosVel ( void )
++{
++  FullAtom *a = patch->atom.begin();
++  int numAtoms = patch->numAtoms;
++
++  for(int i = 0; i < numAtoms; ++i ){
++    a[i].velocity.x = -a[i].velocityOld.x;
++    a[i].velocity.y = -a[i].velocityOld.y;
++    a[i].velocity.z = -a[i].velocityOld.z;
++    a[i].position.x = a[i].positionOld.x;
++    a[i].position.y = a[i].positionOld.y;
++    a[i].position.z = a[i].positionOld.z;
++    a[i].transform = a[i].transformOld;
++  }
++
++  patch->lattice.restore();
++}
++#endif
++
+ void Sequencer::hardWallDrude(BigReal dt, int pressure)
+ {
+   if ( simParams->drudeHardWallOn ) {
+diff -Naur src/Sequencer.h src-modified/Sequencer.h
+--- src/Sequencer.h	2013-10-30 14:26:16.000000000 -0400
++++ src-modified/Sequencer.h	2016-07-13 10:10:49.818296291 -0400
+@@ -111,6 +111,10 @@
+     int ldbSteps;
+     void rebalanceLoad(int timestep);
+ 
++#ifdef CFA_PVRW
++    void saveOldPosVel ( void );
++    void restoreOldPosVel ( void ) ;
++#endif
+ 
+ private:
+     CthThread thread;
