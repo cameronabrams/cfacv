@@ -1,12 +1,12 @@
 diff -Naur src/Broadcasts.h src-modified/Broadcasts.h
 --- src/Broadcasts.h	2015-03-03 12:54:14.000000000 -0500
-+++ src-modified/Broadcasts.h	2016-07-13 10:09:46.509087765 -0400
++++ src-modified/Broadcasts.h	2016-08-02 16:27:17.166942763 -0400
 @@ -31,6 +31,9 @@
    SCRIPT_ATOMSEND,
    SCRIPT_ATOMRECV,
    SCRIPT_MINIMIZE,
 +#ifdef CFA_PVRW
-+  SCRIPT_HITBOUNDARY,
++  SCRIPT_DOPVRW,
 +#endif
    SCRIPT_DUMMY
  };
@@ -16,7 +16,7 @@ diff -Naur src/Broadcasts.h src-modified/Broadcasts.h
    papiMeasureTag,
  #endif
 +#ifdef CFA_PVRW
-+  hitBoundaryTag,
++  doPVRWTag,
 +#endif
    dummyTag
  };
@@ -26,7 +26,7 @@ diff -Naur src/Broadcasts.h src-modified/Broadcasts.h
    SimpleBroadcastObject<int> papiMeasureBarrier;
  #endif
 +#ifdef CFA_PVRW
-+  SimpleBroadcastObject<int> hitBoundary;
++  SimpleBroadcastObject<int> doPVRW;
 +#endif
  
    ControllerBroadcasts(const LDObjHandle *ldObjPtr = 0) : 
@@ -37,7 +37,7 @@ diff -Naur src/Broadcasts.h src-modified/Broadcasts.h
  #endif
 -	traceBarrier(traceBarrierTag, ldObjPtr)
 +#ifdef CFA_PVRW
-+      hitBoundary(hitBoundaryTag, ldObjPtr),
++      doPVRW(doPVRWTag, ldObjPtr),
 +#endif
 +      traceBarrier(traceBarrierTag, ldObjPtr)
    { ; }
@@ -45,21 +45,24 @@ diff -Naur src/Broadcasts.h src-modified/Broadcasts.h
  
 diff -Naur src/GlobalMasterTcl.C src-modified/GlobalMasterTcl.C
 --- src/GlobalMasterTcl.C	2015-10-22 01:03:13.000000000 -0400
-+++ src-modified/GlobalMasterTcl.C	2016-02-09 14:15:55.660579924 -0500
-@@ -5,6 +5,7 @@
++++ src-modified/GlobalMasterTcl.C	2016-08-02 16:42:03.091867178 -0400
+@@ -5,6 +5,9 @@
  **/
  
  #include "InfoStream.h"
++#ifdef CFA_PVRW
 +#include "BackEnd.h"
++#endif
  #include "Node.h"
  #include "Molecule.h"
  #include "ReductionMgr.h"
-@@ -518,6 +519,41 @@
+@@ -518,6 +521,38 @@
  }
  #endif
  
-+/* CFA: The boundary flag broadcast */
-+int GlobalMasterTcl::Tcl_setboundaryflag(ClientData clientData,
++#ifdef CFA_PVRW
++/* CFA: The position-velocity rewind/reverse flag broadcast */
++int GlobalMasterTcl::Tcl_setpvrwflag(ClientData clientData,
 +     Tcl_Interp *interp, int argc, char *argv[]) {
 +  GlobalMasterTcl *self = (GlobalMasterTcl *)clientData;
 +  if (argc != 3) {
@@ -75,12 +78,8 @@ diff -Naur src/GlobalMasterTcl.C src-modified/GlobalMasterTcl.C
 +  if (Tcl_GetInt(interp,argv[2],&value) != TCL_OK) {
 +    return TCL_ERROR;
 +  }
-+  //    fprintf(stdout,"CFA: GlobalMasterTcl::Tcl_setboundaryflag: step %i value %i\n",
-+  //  step,value);fflush(stdout);
-+  self->boundary_flag_step=step;
-+  self->boundary_flag_value=value;
-+  //fprintf(stdout,"CFA: GlobalMasterTcl::Tcl_setboundaryflag: done.\n");fflush(stdout);
-+
++  self->pvrw_flag_step=step;
++  self->pvrw_flag_value=value;
 +  return TCL_OK;
 +}
 +
@@ -92,28 +91,31 @@ diff -Naur src/GlobalMasterTcl.C src-modified/GlobalMasterTcl.C
 +  BackEnd::exit();
 +  return TCL_OK;
 +}
-+
++#endif
  
  GlobalMasterTcl::GlobalMasterTcl() {
    DebugM(3,"Constructing GlobalMasterTcl\n");
-@@ -551,6 +587,8 @@
+@@ -550,7 +585,9 @@
+ 
    interp = Node::Object()->getScript()->interp;
    DebugM(1,"here\n");
- 
+-
++#ifdef CFA_PVRW
 +  broadcast = new ControllerBroadcasts;
-+
++#endif
    Tcl_CreateCommand(interp, "atomid", Tcl_atomid,
      (ClientData) (Node::Object()->molecule), (Tcl_CmdDeleteProc *) NULL);
  
-@@ -607,6 +645,11 @@
+@@ -607,6 +644,12 @@
        (ClientData) this, (Tcl_CmdDeleteProc *) NULL);
    Tcl_CreateCommand(interp, (char *)"getstep", Tcl_getstep,
      (ClientData) this, (Tcl_CmdDeleteProc *) NULL);
-+  Tcl_CreateCommand(interp, (char *)"setboundaryflag", Tcl_setboundaryflag,
-+    (ClientData) this, (Tcl_CmdDeleteProc *) NULL);  //added by TANG
++#ifdef CFA_PVRW
++  Tcl_CreateCommand(interp, (char *)"setpvrwflag", Tcl_setpvrwflag,
++    (ClientData) this, (Tcl_CmdDeleteProc *) NULL);
 +  Tcl_CreateCommand(interp, "exitsafe", Tcl_exitsafe,
-+    (ClientData) this, (Tcl_CmdDeleteProc *) NULL);  //added by TANG
-+
++    (ClientData) this, (Tcl_CmdDeleteProc *) NULL);
++#endif
  #else
  
    NAMD_die("Sorry, tclForces is not available; built without TCL.");
@@ -121,21 +123,21 @@ diff -Naur src/GlobalMasterTcl.C src-modified/GlobalMasterTcl.C
    }
  #endif
  
-+  //problem here during minimization
-+  broadcast->hitBoundary.publish(boundary_flag_step,boundary_flag_value);
-+
++#ifdef CFA_PVRW
++  broadcast->doPVRW.publish(pvrw_flag_step,pvrw_flag_value);
++#endif
    reduction->submit();
  
  }
 diff -Naur src/GlobalMasterTcl.h src-modified/GlobalMasterTcl.h
 --- src/GlobalMasterTcl.h	2015-10-22 01:03:13.000000000 -0400
-+++ src-modified/GlobalMasterTcl.h	2016-07-13 10:07:13.170004767 -0400
++++ src-modified/GlobalMasterTcl.h	2016-08-02 16:36:29.743034612 -0400
 @@ -16,11 +16,22 @@
  #include <tcl.h>
  #endif
  
 +#ifdef CFA_PVRW
-+/* CFA: establishing a broadcast for voronoi cell violation */
++/* CFA: establishing a broadcast for position-velocity rewind/reverse */
 +#include "Broadcasts.h"
 +#endif
 +
@@ -145,9 +147,9 @@ diff -Naur src/GlobalMasterTcl.h src-modified/GlobalMasterTcl.h
    ~GlobalMasterTcl();
   protected:
 +#ifdef CFA_PVRW
-+  /* CFA: The boundary flag broadcast */
-+  int boundary_flag_step;
-+  int boundary_flag_value;
++  /* CFA: The pvrw flag broadcast */
++  int pvrw_flag_step;
++  int pvrw_flag_value;
 +  ControllerBroadcasts * broadcast;
 +#endif
    virtual void calculate();
@@ -158,8 +160,8 @@ diff -Naur src/GlobalMasterTcl.h src-modified/GlobalMasterTcl.h
    static int Tcl_addforce(ClientData, Tcl_Interp *, int, Tcl_Obj * const []); 
    static int Tcl_addenergy(ClientData, Tcl_Interp *, int, char **);
 +#ifdef CFA_PVRW
-+  /* CFA: The boundary flag broadcast */
-+  static int Tcl_setboundaryflag(ClientData, Tcl_Interp *, int, char **);
++  /* CFA: The pvrw flag broadcast */
++  static int Tcl_setpvrwflag(ClientData, Tcl_Interp *, int, char **);
 +  static int Tcl_exitsafe(ClientData, Tcl_Interp *, int, char **);
 +#endif
  #endif
@@ -225,8 +227,8 @@ diff -Naur src/Lattice.h src-modified/Lattice.h
    int p1, p2, p3; // periodic along this lattice vector?
 diff -Naur src/main.C src-modified/main.C
 --- src/main.C	2015-01-16 19:31:44.000000000 -0500
-+++ src-modified/main.C	2016-08-01 16:57:39.097314140 -0400
-@@ -157,6 +157,13 @@
++++ src-modified/main.C	2016-08-02 16:16:23.891109835 -0400
+@@ -157,6 +157,15 @@
           << iINFO << "Please visit http://www.ks.uiuc.edu/Research/namd/\n"
           << iINFO << "for updates, documentation, and support information.\n"
  #endif
@@ -234,8 +236,10 @@ diff -Naur src/main.C src-modified/main.C
 +<< iINFO << "\n"
 +<< iINFO << " *** POSITION-VELOCITY REWIND ENABLED ***\n"
 +<< iINFO << " *** Cameron F. Abrams -- cameronabrams@gmail.com\n"
-+<< iINFO << " *** Relevant messages in log are prepended with PVRW)\n"
-+<< iINFO << " *** Tcl-forces must be enabled\n"
++<< iINFO << " *** \"setpvrwflag\" function is now callable from\n"
++<< iINFO << " *** calcforces routine, if tclforces is on.\n"
++<< iINFO << " *** \"setpvrwflag [getstep] 0\" must appear somewhere in\n"
++<< iINFO << " *** calcforces, otherwise code will hang.\n" 
 +#endif
  << iINFO << "\n"
  << iINFO << "Please cite Phillips et al., J. Comp. Chem. 26:1781-1802 (2005)\n"
@@ -266,7 +270,7 @@ diff -Naur src/NamdTypes.h src-modified/NamdTypes.h
  
 diff -Naur src/Sequencer.C src-modified/Sequencer.C
 --- src/Sequencer.C	2015-03-03 12:54:14.000000000 -0500
-+++ src-modified/Sequencer.C	2016-08-01 16:25:48.182203866 -0400
++++ src-modified/Sequencer.C	2016-08-02 16:39:29.896782380 -0400
 @@ -256,6 +256,12 @@
  
      const int reassignFreq = simParams->reassignFreq;
@@ -329,7 +333,7 @@ diff -Naur src/Sequencer.C src-modified/Sequencer.C
        if ( zeroMomentum && doFullElectrostatics )
          correctMomentum(step,slowstep);
  
-@@ -382,8 +410,25 @@
+@@ -382,8 +410,23 @@
        doEnergy = ! ( step % energyFrequency );
        if ( accelMDOn && !accelMDdihe ) doEnergy=1;
        if ( adaptTempOn ) doEnergy=1; 
@@ -347,16 +351,14 @@ diff -Naur src/Sequencer.C src-modified/Sequencer.C
 +
 +#ifdef CFA_PVRW
 +      if (doTcl) {
-+	//fprintf(stdout,"PVRW: Waiting for broadcast at step %i...\n",step);fflush(stdout);
-+	doPosVelRewind = broadcast->hitBoundary.get(step);
-+	//fprintf(stdout,"PVRW: Received broadcast of %i at step %i\n",doPosVelRewind,step);fflush(stdout);
++	doPosVelRewind = broadcast->doPVRW.get(step);
 +      }
 +#endif
 +      
        rescaleaccelMD(step, doNonbonded, doFullElectrostatics); // for accelMD
       
        if ( staleForces || doTcl || doColvars ) {
-@@ -392,6 +437,9 @@
+@@ -392,6 +435,9 @@
        }
  
        // reassignment based on full-step velocities
@@ -366,7 +368,7 @@ diff -Naur src/Sequencer.C src-modified/Sequencer.C
        if ( !commOnly && ( reassignFreq>0 ) && ! (step%reassignFreq) ) {
          reassignVelocities(timestep,step);
          addForceToMomentum(-0.5*timestep);
-@@ -402,6 +450,9 @@
+@@ -402,6 +448,9 @@
          rattle1(-timestep,0);
        }
  
@@ -376,7 +378,7 @@ diff -Naur src/Sequencer.C src-modified/Sequencer.C
        if ( ! commOnly ) {
          langevinVelocitiesBBK1(timestep);
          addForceToMomentum(timestep);
-@@ -415,7 +466,13 @@
+@@ -415,7 +464,13 @@
        }
  
        // add drag to each atom's positions
@@ -390,7 +392,7 @@ diff -Naur src/Sequencer.C src-modified/Sequencer.C
        if ( ! commOnly && rotDragOn ) addRotDragToPosition(timestep);
  
        rattle1(timestep,1);
-@@ -424,7 +481,10 @@
+@@ -424,7 +479,10 @@
  
        submitHalfstep(step);
        if ( zeroMomentum && doFullElectrostatics ) submitMomentum(step);
@@ -402,7 +404,7 @@ diff -Naur src/Sequencer.C src-modified/Sequencer.C
        if ( ! commOnly ) {
          addForceToMomentum(-0.5*timestep);
          if (staleForces || doNonbonded)
-@@ -1311,6 +1371,46 @@
+@@ -1311,6 +1369,46 @@
    patch->addVelocityToPosition(dt);
  }
  

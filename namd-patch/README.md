@@ -17,21 +17,39 @@ and then patch the src/
 
 patch -p0 < cfa_pvrw_namd211.patch
 
-Now compile NAMD as you would normally.
+Now, issue the ./config script with the following additional flags
 
-Next, you must issue a command of the form
+--cxx-opts "-DCFA_PVRW" --cc-opts "-DCFA_PVRW"
 
-setboundaryflag $step 0 
+Now, compile NAMD as you would normally.  The resulting
+namd2 executable now has the PVRW capability enabled.
 
-every time step inside the calc_forces routine of tcl forces.  If a condition
-is met where you would like to execute a PVRW, you instead issue
+To use PVRW, it is assumed you are using tclforces to
+set the PVRW flag.  That is, inside your calcforces
+procedure, you are using the coordinates to
+decide whether or not to execute a PVRW.  The way
+the PVRW is implemented, you must set the pvrw
+flag every time the calcforces procedure is called; that is, every time step.  This is because it is a "broadcast" (but I am sure I could figure out a way to do this
+differently!).
 
-setboundaryflag $step 1
+As an example, consider this calcforces procedure:
 
-where in both cases, "step" is the current timestep.
+  proc calcforces {} {
+    set step [getstep]
+    if {$step && ![expr $step % 100]} {
+      puts "PVRW) Test: setpvrwflag $step 1"
+      setpvrwflag $step 1
+     } else {
+      setpvrwflag $step 0
+     }
+  }
 
-Note that this command has to be executed at every time step with either
- a "0" or "1" as the second argument since it sets a broadcast that
-the sequencer expects.  The code will wait patiently for this broadcast 
-if you don't send it!
+This procedure sets the PVRW flag to 1
+if the timestep is a multiple of 100;
+otherwise it sets the PVRW flag to 0.  Note that
+the pvrw flag is explicitly set every time step!
+
+The ala2-test/ directory contains all input files necessary
+to run a simple test of NAMD 2.11 with PVRW enabled.  Two
+representative logs are provided as well.
 

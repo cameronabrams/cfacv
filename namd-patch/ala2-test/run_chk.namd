@@ -1,0 +1,68 @@
+structure  solv_ala2.psf
+coordinates solv_init.pdb
+set temperature 300
+temperature $temperature
+
+set outputname     go
+
+paraTypeCharmm      on
+parameters par_all22_prot.prm
+parameters toppar_water_ions_namd.str
+
+exclude             scaled1-4
+1-4scaling          1.0
+cutoff              10.
+switching           on
+switchdist          9.0
+pairlistdist        11.5
+
+timestep            2.0 
+rigidbonds          all;#none
+
+nonbondedFreq       1
+fullElectFrequency  2
+stepspercycle       10
+outputName          $outputname
+
+# Langevin Dynamics
+langevin                on
+langevinDamping         5
+langevinTemp            $temperature
+langevinHydrogen        no
+seed                    98768674
+
+restartfreq         10000
+dcdfreq             1
+outputEnergies      1
+
+set PME on
+set pmegridspacing 1.0
+cellBasisVector1   25.994999885559082 0.0 0.0
+cellBasisVector2   0.0 25.881999969482422 0.0
+cellBasisVector3   0.0 0.0 25.76200008392334
+cellOrigin         -0.0507810041308403 -0.1301412582397461 0.17515131831169128
+wrapall on
+
+tclforces on
+tclforcesscript {
+  proc calcforces {} {
+   set step [getstep]
+   if {$step && ![expr $step % 100]} {
+    puts "PVRW) Test: setpvrwflag $step 1"
+    setpvrwflag $step 1
+   } else {
+    setpvrwflag $step 0
+   }
+  }
+}
+
+langevinpiston on		
+langevinpistontarget 1.01325
+langevinpistonperiod 200
+langevinpistondecay 100
+langevinpistontemp $temperature
+
+minimize 20
+
+run 3020
+
