@@ -34,6 +34,7 @@ differently!).
 
 As an example, consider this calcforces procedure:
 
+```tcl
   proc calcforces {} {
     set step [getstep]
     if {$step && ![expr $step % 100]} {
@@ -43,11 +44,12 @@ As an example, consider this calcforces procedure:
       setpvrwflag $step 0
      }
   }
+```
 
 This procedure sets the PVRW flag to 1
 if the timestep is a multiple of 100;
 otherwise it sets the PVRW flag to 0.  Note that
-the pvrw flag is explicitly set every time step!
+the pvrw flag is explicitly set **every** time step!
 
 The ala2-test/ directory contains all input files necessary
 to run a simple test of NAMD 2.11 with PVRW enabled.  Two
