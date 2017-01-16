@@ -854,13 +854,10 @@ proc Tcl_DataSpace_assignZfromCVs { ds lC groups } {
     return $rvList
 }
 
-proc Tcl_UpdateDataSpace_StringMethod { ds lC groups rawupdate SMPARAMS timestep } {
+proc Tcl_DataSpace_UpdateSM { ds lC groups z timestep new_z } {
     upvar $lC p
-    upvar $SMPARAMS sm
 
-#    puts "Tcl_UpdateDataSpace_StringMethod: stepsize $sm(stepsize)"
-#    flush stdout
-#    puts "Tcl_UpdateDataSpace_StringMethod: rawupdate $rawupdate"
+#    puts stdout "Tcl_DataSpace_UpdateSM: timestep $timestep z $z"
 #    flush stdout
 
     # Move group center positions to dataspace
@@ -871,15 +868,31 @@ proc Tcl_UpdateDataSpace_StringMethod { ds lC groups rawupdate SMPARAMS timestep
     }
     MyParanoiaCheck $ds "tripped after moving data to dataspace"
 
-    # Compute CV's within dataspace
+#    puts stdout "Tcl_DataSpace_UpdateSM: timestep $timestep moved positions in"
+#    flush stdout
+
+    # Compute CV's within dataspace; this also updates metric tensor tally
     DataSpace_ComputeCVs $ds
     MyParanoiaCheck $ds "tripped after computing CV's"
     # At this point, the (x,y,z) position data is no longer needed.
     # We can now write into its space the (x,y,z) restraint forces.
 
+    # Send z values to dataspace
+    if { $new_z } { 
+#      puts stdout "Tcl_DataSpace_UpdateSM: timestep $timestep setting restraint values to $z"
+#      flush stdout
+      DataSpace_SetRestraints $ds [ListToArray $z]
+#      puts stdout "Tcl_DataSpace_UpdateSM: timestep $timestep restraints set."
+#      flush stdout 
+    }
+
     # Compute restraining forces
+#    puts stdout "Tcl_DataSpace_UpdateSM: timestep $timestep computing restraining forces"
+#    flush stdout
     DataSpace_RestrainingForces $ds 0 0 
     MyParanoiaCheck $ds "tripped after computing restraining forces"
+ #   puts stdout "Tcl_DataSpace_UpdateSM: timestep $timestep z restraints computed."
+ #   flush stdout
 
     # Transmit forces back to groups
     set i 0
@@ -891,16 +904,61 @@ proc Tcl_UpdateDataSpace_StringMethod { ds lC groups rawupdate SMPARAMS timestep
     # Add restraint energy to NAMD energy structure
     addenergy [DataSpace_RestraintEnergy $ds]
 
-    if {$rawupdate == 1} {
-	DataSpace_StringMethod_RawUpdate $ds $sm(stepsize) $timestep
-    }
-    set rvList [ArrayToList [DataSpace_z $ds] [DataSpace_nz $ds]]
+    # tally and prepare dF/dz and MM for transport... moving this to the master script...
+#    puts stdout "Tcl_DataSpace_UpdateSM: timestep $timestep tallying..."
+#    flush stdout
+#    DataSpace_Tally $ds
+#    puts stdout "Tcl_DataSpace_UpdateSM: timestep $timestep tallied.  Done."
+#    flush stdout
+}
+
+#proc Tcl_UpdateDataSpace_StringMethod { ds lC groups rawupdate SMPARAMS timestep } {
+#    upvar $lC p
+#    upvar $SMPARAMS sm
+
+#    puts "Tcl_UpdateDataSpace_StringMethod: stepsize $sm(stepsize)"
+#    flush stdout
+#    puts "Tcl_UpdateDataSpace_StringMethod: rawupdate $rawupdate"
+#    flush stdout
+
+    # Move group center positions to dataspace
+#    set i 0
+#    foreach g $groups {
+#	ListToArray_Data [DataSpace_centerPos $ds $i] $p($g)
+#	incr i
+#    }
+#    MyParanoiaCheck $ds "tripped after moving data to dataspace"
+
+    # Compute CV's within dataspace
+#    DataSpace_ComputeCVs $ds
+#    MyParanoiaCheck $ds "tripped after computing CV's"
+    # At this point, the (x,y,z) position data is no longer needed.
+    # We can now write into its space the (x,y,z) restraint forces.
+
+    # Compute restraining forces
+#    DataSpace_RestrainingForces $ds 0 0 
+#    MyParanoiaCheck $ds "tripped after computing restraining forces"
+
+    # Transmit forces back to groups
+#    set i 0
+#    foreach g $groups {
+#	addforce $g [ArrayToList [DataSpace_centerPos $ds $i] 3]
+#	incr i
+#    }
+
+    # Add restraint energy to NAMD energy structure
+#    addenergy [DataSpace_RestraintEnergy $ds]
+
+#    if {$rawupdate == 1} {
+#	DataSpace_StringMethod_RawUpdate $ds $sm(stepsize) $timestep
+#    }
+#    set rvList [ArrayToList [DataSpace_z $ds] [DataSpace_nz $ds]]
 
 #    puts "end of Tcl_UpdateDataSpace_StringMethod"
 #    flush stdout
 
-    return $rvList
-}
+#    return $rvList
+#}
 
 proc Tcl_UpdateDataSpace { ds lC groups first timestep } {
     upvar $lC p

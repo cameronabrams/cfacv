@@ -61,8 +61,7 @@ cvStruct * New_cvStruct ( int typ, int nC, int * ind ) {
 metricTensorStruct * New_metricTensorStruct ( int M ) {
   int i;
   metricTensorStruct * mt = (metricTensorStruct*)malloc(sizeof(metricTensorStruct));
-  mt->M=(double**)malloc(M*sizeof(double*));
-  for (i=0;i<M;i++) mt->M[i]=(double*)malloc(M*sizeof(double));
+  mt->MM=(double*)malloc(M*M*sizeof(double*));
   mt->n=0;
   mt->m=M;
   /* sparse handler */
@@ -76,9 +75,9 @@ metricTensorStruct * New_metricTensorStruct ( int M ) {
 int DataSpace_metricTensor_Reset ( DataSpace * ds ) {
   if (ds) {
     int i,j;
-    for (i=0;i<ds->mt->m;i++)
-      for (j=0;j<ds->mt->m;j++)
-	ds->mt->M[i][j]=0.0;
+    int m=ds->mt->m;
+    for (i=0;i<m;i++) for (j=0;j<m;j++)
+	ds->mt->MM[i*m+j]=0.0;
     ds->mt->n=0;
   }
 }
@@ -104,7 +103,7 @@ void DataSpace_metricTensor_fprintf ( DataSpace * ds, FILE * fp ) {
     fprintf(fp,"CFACV/C) Metric tensor: %i non-zero elements (%i off-diagonals)\n",mt->nn,mt->nn-ds->M);
     fprintf(fp,"         [linear-index]  [cva  cvb]  (value (1/amu)) (#-common-centers) : list-of-center-pair-indices [global-ctr-index:(cva-i,cvb-i)]\n");
     for (k=0;k<mt->nn;k++) {
-      fprintf(fp,"    [%i]  [%i %i] : (%.5le) : (%i) : ",k,mt->cva[k],mt->cvb[k],mt->nca[k],mt->M[mt->cva[k]][mt->cvb[k]]);
+      fprintf(fp,"    [%i]  [%i %i] : (%.5le) : (%i) : ",k,mt->cva[k],mt->cvb[k],mt->nca[k],mt->MM[mt->cva[k]*mt->m+mt->cvb[k]]);
       for (l=0;l<mt->nca[k];l++) fprintf(fp,"[%i:(%i,%i)]",mt->ca[k][l].a,mt->ca[k][l].i,mt->ca[k][l].j);
       fprintf(fp,"\n");
     }
@@ -413,6 +412,7 @@ DataSpace * NewDataSpace ( int N, int M, int K, long int seed ) {
   ds->z=(double*)malloc(K*sizeof(double));
   ds->oldz=(double*)malloc(K*sizeof(double));
   ds->f=(double*)malloc(K*sizeof(double));
+  ds->MM=(double*)malloc(K*K*sizeof(double));
 
   /* metric tensor -- only use of K == M (one restraint per CV) */
   ds->mt=NULL;
@@ -444,6 +444,20 @@ double * DataSpace_z ( DataSpace * ds ) {
   }
   return NULL;
 }
+
+double * DataSpace_g ( DataSpace * ds ) {
+  if (ds) {
+    return ds->f; // "f" means force, but in the sense that this is on the atoms -- this is really the gradient dF/dz
+  }
+  return NULL;
+}
+
+double * DataSpace_MM ( DataSpace * ds ) {
+  if (ds) {
+    return ds->MM;
+  }
+  return NULL;
+} 
 
 int DataSpace_nz ( DataSpace * ds ) {
   if (ds) {
@@ -535,6 +549,7 @@ int DataSpace_AddRestr ( DataSpace * ds, double k, double z, int nCV, double * c
   }
   return -1;
 }
+
 
 int DataSpace_updateRestraintValue ( DataSpace * ds, int i, double rv ) {
   if (ds) {
@@ -661,36 +676,57 @@ int DataSpace_ComputeCVs ( DataSpace * ds ) {
 
     // update metric tensor tally
     if (ds->mt) {
-      //fprintf(stdout,"CFACV/C) metric tensor [%x] update\n",ds->mt);fflush(stdout);
+//      fprintf(stdout,"CFACV/C) metric tensor [%x] update\n",ds->mt);fflush(stdout);
       metricTensorStruct * mt = ds->mt;
       int k,d;
       int ii,jj;
+      double incr, thismte;
 /* #ifdef SHORTMT */
       for (i=0;i<mt->nn;i++) {
 	cvi=ds->cv[mt->cva[i]];
 	cvj=ds->cv[mt->cvb[i]];
 	// for each common center, tally 1/mass * ( grad(cva,rx)*grad(cvb,rx) + grad(cva,ry)*grad(cvb,ry) + grad(cva,rz)*grad(cvb,rz) )
-	for (k=0;k<mt->nca[i];k++) 
+        thismte=0.0;
+	for (k=0;k<mt->nca[i];k++) {
+          incr=0.0; 
 	  for (d=0;d<3;d++) {
-	    mt->M[mt->cva[i]][mt->cvb[i]] += 1.0/ds->ac[mt->ca[i][k].a]->M * ( cvi->gr[mt->ca[i][k].i][d] * cvj->gr[mt->ca[i][k].j][d] );
-	    if (mt->cvb[i]!=mt->cva[i]) 
-	      mt->M[mt->cvb[i]][mt->cva[i]] += 1.0/ds->ac[mt->ca[i][k].a]->M * ( cvi->gr[mt->ca[i][k].i][d] * cvj->gr[mt->ca[i][k].j][d] );
-	  }
+            incr+=1.0/ds->ac[mt->ca[i][k].a]->M * ( cvi->gr[mt->ca[i][k].i][d] * cvj->gr[mt->ca[i][k].j][d] );
+          }
+          thismte+=incr;
+	  mt->MM[mt->cva[i]*mt->m+mt->cvb[i]] += incr;
+	  if (mt->cvb[i]!=mt->cva[i]) mt->MM[mt->cvb[i]*mt->m+mt->cva[i]] += incr;
+#ifdef PARANOIA
+          fprintf(stdout,"CFACV/C/DEBUG: mt n.z.e. %i common-atom %i (%i in cv-%i, %i in cv-%i) out of %i\n",
+                   i,k, mt->ca[i][k].i, mt->cva[i], mt->ca[i][k].j, mt->cvb[i], mt->nca[i]);fflush(stdout);
+          fprintf(stdout,"              (%i,%i): mass %.5lf\n",
+                   mt->cva[i],mt->cvb[i],ds->ac[mt->ca[i][k].a]->M);fflush(stdout);
+          fprintf(stdout,"              grad-%i %.5lf %.5lf %.5lf grad-%i %.5lf %.5lf %.5lf\n",
+                   mt->cva[i],cvi->gr[mt->ca[i][k].i][0],cvi->gr[mt->ca[i][k].i][1],cvi->gr[mt->ca[i][k].i][2],
+                   mt->cvb[i],cvj->gr[mt->ca[i][k].j][0],cvj->gr[mt->ca[i][k].j][1],cvj->gr[mt->ca[i][k].j][2]);fflush(stdout);
+          fprintf(stdout,"              metric tensor increment %.5lf\n",
+                   1.0/ds->ac[mt->ca[i][k].a]->M*(cvi->gr[mt->ca[i][k].i][0]*cvj->gr[mt->ca[i][k].j][0]+
+                   cvi->gr[mt->ca[i][k].i][1]*cvj->gr[mt->ca[i][k].j][1]+
+                   cvi->gr[mt->ca[i][k].i][2]*cvj->gr[mt->ca[i][k].j][2]));fflush(stdout);
+#endif
+        }
+#ifdef PARANOIA
+        fprintf(stdout,"CFACV/C/DEBUG: mt n.z.e. %i thiselementvalue %.5lf\n",i,thismte);fflush(stdout);
+#endif
       }
 /* #else */
-/*       for (i=0;i<ds->M;i++) { */
-/* 	for (j=0;j<ds->M;j++) { */
-/* 	  for (ii=0;ii<ds->cv[i]->nC;ii++) { */
-/* 	    for (jj=0;jj<ds->cv[j]->nC;jj++) { */
-/* 	      if (ds->cv[i]->ind[ii]==ds->cv[j]->ind[jj]) { */
-/* 		for (d=0;d<3;d++) { */
-/* 		  mt->M[i][j]+=1.0/ds->ac[ds->cv[i]->ind[ii]]->M * (ds->cv[i]->gr[ii][d]*ds->cv[j]->gr[jj][d]); */
-/* 		} */
-/* 	      } */
-/* 	    } */
-/* 	  } */
-/* 	} */
-/*       } */
+//       for (i=0;i<ds->M;i++) {
+// 	for (j=0;j<ds->M;j++) {
+// 	  for (ii=0;ii<ds->cv[i]->nC;ii++) {
+// 	    for (jj=0;jj<ds->cv[j]->nC;jj++) {
+// 	      if (ds->cv[i]->ind[ii]==ds->cv[j]->ind[jj]) {
+// 		for (d=0;d<3;d++) {
+// 		  mt->MM[i*mt->m+j]+=1.0/ds->ac[ds->cv[i]->ind[ii]]->M * (ds->cv[i]->gr[ii][d]*ds->cv[j]->gr[jj][d]);
+// 		}
+// 	      }
+// 	    }
+// 	  }
+// 	}
+//      }
 /* #endif */
       // this is one full time-step of update, so..
       mt->n++;
@@ -700,6 +736,22 @@ int DataSpace_ComputeCVs ( DataSpace * ds ) {
     return 0;
   }
   return -1;
+}
+
+int DataSpace_Tally ( DataSpace * ds ) {
+//  fprintf(stderr,"CFACV/C) SM entered DataSpace_Tally()...\n");fflush(stderr);
+  if (ds) {
+  //  fprintf(stderr,"CFACV/C) SM tallying gradients and MT dim %d match %d...\n",ds->K,ds->mt->m);fflush(stderr);
+    int i,j;
+    for (i=0;i<ds->K;i++) {
+      ds->f[i]=ds->restr[i]->facc->f/ds->restr[i]->facc->n;
+    //  fprintf(stderr,"  -> f[%d] %.6lf\n",i,ds->f[i]);
+      if (ds->mt) for (j=0;j<ds->K;j++) {
+        ds->MM[i*ds->mt->m+j] = ds->mt->MM[i*ds->mt->m+j]/ds->mt->n;
+      //  fprintf(stderr,"     -> M[%d][%d] %.6lf\n",i,j,ds->MM[i*ds->mt->m+j]);fflush(stderr);
+      }
+    }  
+  }
 }
 
 int DataSpace_AssignZsFromCVs ( DataSpace * ds ) {
@@ -1007,7 +1059,7 @@ void DataSpace_ReportRestraints ( DataSpace * ds, int step, int outputlevel, FIL
   if (outputlevel & 4) {
     fprintf(fp,"CFACV/C) FD % 10i ",step);
     for (i=0;i<ds->iK;i++) {
-      fprintf(fp,"% 11.5lf",ds->restr[i]->tamd_restraint);
+      fprintf(fp,"% 11.5lf",ds->restr[i]->f);//tamd_restraint);
     }
     fprintf(fp,"\n");
   }
@@ -1059,40 +1111,63 @@ void DataSpace_BinaryReportRestraints ( DataSpace * ds, int step, int outputleve
   fflush(fp);
 }
 
-int DataSpace_StringMethod_RawUpdate ( DataSpace * ds, double stepsize, int timestep ) {
-  if (ds) {
-    int i;
-    int j;
-    double tmp=0.0;
-    //fprintf(stdout,"CFACV/C) %i MF ",timestep);
-    for (i=0;i<ds->K;i++) {
-      tmp=0.0;
-      //      fprintf(stdout,"%.10lf ",ds->restr[i]->facc->f/ds->restr[i]->facc->n);
-      ds->f[i]=ds->restr[i]->facc->f/ds->restr[i]->facc->n;
-      if (stepsize>0.0) for (j=0;j<ds->K;j++) {
-	tmp+=ds->restr[j]->facc->f/ds->restr[j]->facc->n*ds->mt->M[i][j]/ds->mt->n;
+int SMDataSpace_RawImageUpdate ( SMDataSpace * sm, double stepsize, int img ) {
+  if (sm) {
+    if (img>=0 && img<sm->ni) {
+      double * z=sm->z[img];
+      double * oldz=sm->oldz[img];
+      double * g=sm->g[img];
+      double * M=sm->MM[img];
+      // put in abililty to see full update
+      int n = sm->nz;
+      int i,j;
+      double tmp=0.0;
+      for (i=0;i<n;i++) {
+        tmp=0.0;
+        for (j=0;j<n;j++) tmp+=g[j]*M[i*n+j];
+        oldz[i]=z[i];
+	z[i]-=tmp*stepsize;
+	//z[i]-=g[i]*stepsize;
       }
-//      tmp=ds->restr[i]->facc->f/ds->restr[i]->facc->n*ds->mt->M[i][i]/ds->mt->n; 
-      ds->restr[i]->z-=tmp*stepsize;
-      ds->oldz[i]=ds->z[i];
-      ds->z[i]=ds->restr[i]->z;
     }
-    //fprintf(stdout,"\n");fflush(stdout);
   }
 }
 
-SMDataSpace * New_stringMethod_Dataspace ( int ni, int nz, int reparam_maxiter, double reparam_tol, int outputlevel, double nu  ) {
+int SMDataSpace_MoveString ( SMDataSpace * sm, double stepsize ) {
+  if (sm) {
+    int img;
+    int ni=sm->ni;
+
+//    fprintf(stderr,"CFACV/C) SM moving string with stepsize %.6lf\n",stepsize);fflush(stderr);
+
+    // perform raw update of each z-position
+    if (sm->evolve_ends) SMDataSpace_RawImageUpdate(sm,stepsize,0);
+    if (sm->evolve_ends) SMDataSpace_RawImageUpdate(sm,stepsize,ni-1);
+    for (img=1;img<(ni-1);img++) SMDataSpace_RawImageUpdate(sm,stepsize,img);
+
+    // reparameterize
+    SMDataSpace_reparameterize(sm);
+
+    // done
+  } 
+}
+
+SMDataSpace * New_stringMethod_Dataspace ( int ni, int nz, int outputlevel, double nu, int evolve_ends  ) {
   SMDataSpace * sm = (SMDataSpace*)malloc(sizeof(SMDataSpace));
   int i,j;
 
   fprintf(stderr,"CFACV/C) Allocating new string method dataspace (%i,%i)\n",ni,nz);
   fflush(stderr);
 
+  if (!nz) {
+    fprintf(stderr,"ERROR/SM: cannot allocate a 0-dimensional CV space!\n");
+    exit(-1);
+  }
+ 
   sm->ni=ni;
   sm->nz=nz;
-  sm->reparam_maxiter=reparam_maxiter;
-  sm->reparam_tol=reparam_tol;
   sm->outputlevel=outputlevel;
+  sm->evolve_ends=evolve_ends;
 
   sm->z=(double**)malloc(ni*sizeof(double*));
   for (i=0;i<ni;i++) sm->z[i]=(double*)malloc(nz*sizeof(double));
@@ -1101,12 +1176,21 @@ SMDataSpace * New_stringMethod_Dataspace ( int ni, int nz, int reparam_maxiter, 
   sm->zn=(double**)malloc(ni*sizeof(double*));
   for (i=0;i<ni;i++) sm->zn[i]=(double*)malloc(nz*sizeof(double));
 
+  sm->g=(double**)malloc(ni*sizeof(double));
+  for (i=0;i<ni;i++) sm->g[i]=(double*)malloc(nz*sizeof(double));
+  sm->MM=(double**)malloc(ni*sizeof(double));
+  for (i=0;i<ni;i++) sm->MM[i]=(double*)malloc(nz*nz*sizeof(double));
+ 
   sm->L=(double*)malloc(ni*sizeof(double));
+
   sm->s=(double*)malloc(ni*sizeof(double));
 
   sm->ztyp=(int*)malloc(nz*sizeof(int));
 
   sm->nu = nu;
+
+  fprintf(stderr,"CFACV/C) Finished string-method dataspace allocation.\n");
+  fflush(stderr);
 
   return sm;
 }
@@ -1123,6 +1207,20 @@ double * SMDataSpace_image_oldz ( SMDataSpace * sm, int i ) {
   if (sm) {
     if (i>=0 && i<sm->ni) 
       return sm->oldz[i];
+    else return NULL;
+  } else return NULL;
+}
+
+double * SMDataSpace_image_g ( SMDataSpace * sm, int i ) {
+  if (sm) {
+    if (i>=0 && i<sm->ni) return sm->g[i];
+    else return NULL;
+  } else return NULL;
+}
+
+double * SMDataSpace_image_M ( SMDataSpace * sm, int i ) {
+  if (sm) {
+    if (i>=0 && i<sm->ni) return sm->MM[i];
     else return NULL;
   } else return NULL;
 }
@@ -1201,6 +1299,14 @@ int SMDataSpace_climb ( SMDataSpace * sm ) {
   return -1;
 }
 
+int SMDataSpace_set_reparam_tol ( SMDataSpace * sm, double reparam_tol, int maxiter ) {
+  if (sm) {
+    sm->reparam_tol=reparam_tol;
+    sm->reparam_maxiter=maxiter;
+  }
+  return 0;
+}
+
 int SMDataSpace_reparameterize ( SMDataSpace * sm ) {
   if (sm) {
     int ni=sm->ni;
@@ -1210,6 +1316,7 @@ int SMDataSpace_reparameterize ( SMDataSpace * sm ) {
     int i,k,tk;
     double del=0.0;
     int iter=0;
+    double dL;
     double * tmp1=(double*)malloc(nz*sizeof(double));
     double * tmp2=(double*)malloc(nz*sizeof(double));
     double err=1000.0,sum, sum2, d;
@@ -1219,25 +1326,26 @@ int SMDataSpace_reparameterize ( SMDataSpace * sm ) {
     sm_cop(sm->zn[0],sm->z[0],nz);
     sm_cop(sm->zn[ni-1],sm->z[ni-1],nz);
 
+    /* 1. compute actual running arc length of the un-reparameterized string */
+    L[0]=0.0;
+    for (i=1;i<ni;i++) L[i]=L[i-1]+sm_euc(sm->z[i],sm->z[i-1],nz);
+    /* 2. compute desired (equidistant) running arc length */
+    s[0]=0.0;
+    dL=L[ni-1]/(ni-1);
+    for (i=1;i<ni;i++) s[i]=i*dL;
+ 
+    if (sm->outputlevel>0) {
+      fprintf(stdout,"CFACV/C) string pre-reparam interimage stepsizes: |");
+      for (i=1;i<ni;i++) {
+        fprintf(stdout,"%.5lf|",sm_euc(sm->z[i-1],sm->z[i],nz));
+      }
+      fprintf(stdout,"\n");
+    }
+
     if (sm->reparam_tol==0.0) no_iter=1;
     while (no_iter || (iter < sm->reparam_maxiter && err > sm->reparam_tol)) {
-      /* 1. compute actual running arc length */
-      L[0]=0.0;
-      for (i=1;i<ni;i++) L[i]=L[i-1]+sm_euc(sm->z[i],sm->z[i-1],nz);
-      /* 2. compute desired running arc length */
-      s[0]=0.0;
-      for (i=1;i<ni;i++) s[i]=i*L[ni-1]/(ni-1);
-
-      if (sm->outputlevel>0) {
-	fprintf(stdout,"CFACV/C) string pre-reparam interimage stepsizes: |");
-	for (i=1;i<ni;i++) {
-	  fprintf(stdout,"%.5lf|",sm_euc(sm->z[i-1],sm->z[i],nz));
-	}
-	fprintf(stdout,"\n");
-      }
-
       /* 2. for each point on raw string, excluding ends... */
-      for (i=1;i<ni-1;i++) {
+      for (i=1;i<(ni-1);i++) {
 	tk=-1;
 	for (k=1;tk==-1&&k<ni;k++) {
 	  if ((L[k-1])<s[i] && s[i]<=(L[k]+del)) {
@@ -1272,7 +1380,7 @@ int SMDataSpace_reparameterize ( SMDataSpace * sm ) {
       }
       err=sqrt((sum2-sum*sum/(ni-1))/(ni-1));
       if (sm->outputlevel>0) 
-	fprintf(stdout,"CFACV/C) reparam iter %i err %.5le tol %.5le\n",iter,err,sm->reparam_tol);
+        fprintf(stdout,"CFACV/C) reparam iter %i err %.5le tol %.5le\n",iter,err,sm->reparam_tol);
       if (no_iter) no_iter=0;
       iter++;
     }

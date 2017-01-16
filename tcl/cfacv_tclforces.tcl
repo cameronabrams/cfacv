@@ -88,6 +88,8 @@ set ds [Tcl_NewDataSpace $nCntr $cvList $rList $seed]
 Tcl_DataSpace_SetCenterMasses $ds $masses
 
 set first 1
+DataSpace_metricTensor_Setup $ds
+Tcl_DataSpace_resetAccumulators $ds
 
 # set output frequencies
 if {[info exists TAMDof]} {
@@ -138,7 +140,8 @@ proc calcforces { } {
     global TAMDoutputFileFP
     global TAMDbinOutputFile
     global TAMDbinOutputFileFP
-
+    global nCV
+ 
     # load COM coordinates of requested atom groups into associative array
     loadcoords p
 
@@ -149,10 +152,17 @@ proc calcforces { } {
     # report if requested
     if {[expr {[getstep]%$reportFreq == 0}]} {
 	DataSpace_ReportRestraints $ds [getstep] $TAMDoutputlevel $TAMDoutputFileFP
+        DataSpace_Tally $ds
+        set g [ArrayToList [DataSpace_g $ds] $nCV]
+        set M [ArrayToList [DataSpace_MM $ds] [expr $nCV*$nCV]]
+        puts "CFACV) Average gradF $g"
+        puts "CFACV) Average MT $M"
+        Tcl_DataSpace_resetAccumulators $ds
     }
 
     # report if requested
     if {[info exists TAMDbinOutputFile] && [expr {[getstep]%$binReportFreq == 0}]} {
 	DataSpace_BinaryReportRestraints $ds [getstep] $TAMDoutputlevel $TAMDbinOutputFileFP
     }
+  
 }

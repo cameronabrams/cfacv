@@ -15,34 +15,40 @@ LIBS += -lm
 
 CFLAGS += -O3
 
+USER_FLAGS =
+
 OBJ += measurements.o
 OBJ += cfacv.o
 OBJ += centers.o
 
 SSOBJ += basisrep.o
 
-all: cfacv.so genericdataspace.so ForcesFromLog Reconstruct
+all: cfacv.so genericdataspace.so ForcesFromLog Reconstruct FEPFromForces
 
 cfacv.so:  $(OBJ) cfacv_wrap.o
-	$(CC) $(CCFLAGS) -shared -o $@ $^ $(LIBS)
+	$(CC) $(CFLAGS) -shared -o $@ $^ $(LIBS)
 	cp $@ ../lib/
 
 genericdataspace.so:  genericdataspace.o genericdataspace_wrap.o
-	$(CC) $(CCFLAGS) -shared -o $@ $^ $(LIBS)
+	$(CC) $(CFLAGS) -shared -o $@ $^ $(LIBS)
 	cp $@ ../lib/
 
 %.o: %.c
-	$(CC) -c -fpic $(CCFLAGS) $< $(LIBS)
+	$(CC) -c -fpic $(CFLAGS) $< $(LIBS)
 
 %_wrap.c: %.i %.c %.h
 	swig -tcl8 $<
 
 ForcesFromLog: ForcesFromLog.c
-	$(CC) $(CCFLAGS) -o $@ $^ $(LIBS)
+	$(CC) $(CFLAGS) $(USER_FLAGS) -o $@ $^ $(LIBS)
 	cp $@ ../bin/
 
 Reconstruct:  $(SSOBJ) Reconstruct.o
-	$(CC) $(CCFLAGS) -o $@ $^ $(LIBS) $(GSL)
+	$(CC) $(CFLAGS) $(USER_FLAGS) -o $@ $^ $(LIBS) $(GSL)
+	cp $@ ../bin
+
+FEPFromForces:	FEPFromForces.c
+	$(CC) $(CFLAGS) $(USER_FLAGS) -o $@ $^ $(LIBS) $(GSL)
 	cp $@ ../bin
 
 measurements.o : measurements.h

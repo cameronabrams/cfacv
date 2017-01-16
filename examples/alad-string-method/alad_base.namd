@@ -1,0 +1,39 @@
+# 
+# shared simulation options for SMCV calculations
+
+timestep	1.0
+rigidbonds      all
+
+structure	alad_wb.psf
+coordinates	alad_wb.pdb
+
+paraTypeCharmm      on
+parameters par_all22_prot.prm
+parameters toppar_water_ions_namd.str
+
+exclude		scaled1-4
+1-4scaling	1.0
+switching 	on
+switchdist	8.5
+cutoff		9.0
+pairlistdist 	10.0
+
+nonbondedFreq       1
+fullElectFrequency  1
+stepspercycle       1
+
+langevin on
+langevinDamping 5.0
+langevinHydrogen        no
+
+pme on
+pmegridspacing 1.0
+wrapall on
+
+# CFACV parameters
+tclforces                       on
+tclforcesscript                 $env(HOME)/research/cfacv/tcl/cfacv_tclforces_stringmethod.tcl
+set labelPDB                    label.pdb
+set cvINP                       cv.inp
+set restrPARAMS                 {{k 100}} ; # spring constant
+set TAMDof                      100
