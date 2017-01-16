@@ -9,7 +9,7 @@ This README resides in the alad-string-method subdirectory of github.com/cameron
 > - alad-tamd/: TAMD where $z = (\phi,\psi)$
 > - alad-single-sweep/: single-sweep reconstruction of the free-energy surface $F(\phi,\psi)$
 
-It is also assumed the reader has a good working knowledge of MD simulations in general and NAMD in particular.
+It is also assumed the reader has a good working knowledge of MD simulations in general and NAMD in particular.  Because this implementation is based on NAMD's replica exchange feature, it also requires a NAMD binary with MPI enabled.
 
 ##Background
 
