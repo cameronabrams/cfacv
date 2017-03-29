@@ -109,7 +109,7 @@ NII=`echo "$NI - 1" | bc`
 
 image_forces_dat=image_forces.dat
 
-NLH=`wc -l $sm_history | awk '{print $1}'`
+NLH=`grep -w reparam $sm_history | wc -l | awk '{print $1}'`
 NITER=`echo "scale=0; $NLH / $NI" | bc -l`
 echo "History file $sm_history contains info on $NITER iterations."
 echo "Extracting CV values from last $avg_last iterations"

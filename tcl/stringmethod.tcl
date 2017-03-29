@@ -83,7 +83,6 @@ dcdFreq [expr $steps_per_run * $runs_per_frame]
 set SMPARAMS(nu) 0.0
 
 source $namd_config_file
-source $tclforces_cfacv_file
 
 set history_file [open [format "$job_output_root.$replica_id.history" $replica_id] "w"]
 fconfigure $history_file -buffering line

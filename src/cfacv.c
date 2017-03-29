@@ -1326,6 +1326,8 @@ int SMDataSpace_reparameterize ( SMDataSpace * sm ) {
     sm_cop(sm->zn[0],sm->z[0],nz);
     sm_cop(sm->zn[ni-1],sm->z[ni-1],nz);
 
+    if (sm->reparam_tol==0.0) no_iter=1;
+    while (no_iter || (iter < sm->reparam_maxiter && err > sm->reparam_tol)) {
     /* 1. compute actual running arc length of the un-reparameterized string */
     L[0]=0.0;
     for (i=1;i<ni;i++) L[i]=L[i-1]+sm_euc(sm->z[i],sm->z[i-1],nz);
@@ -1342,8 +1344,6 @@ int SMDataSpace_reparameterize ( SMDataSpace * sm ) {
       fprintf(stdout,"\n");
     }
 
-    if (sm->reparam_tol==0.0) no_iter=1;
-    while (no_iter || (iter < sm->reparam_maxiter && err > sm->reparam_tol)) {
       /* 2. for each point on raw string, excluding ends... */
       for (i=1;i<(ni-1);i++) {
 	tk=-1;
