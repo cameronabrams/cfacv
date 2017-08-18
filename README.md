@@ -1,4 +1,4 @@
-#CFACV -- a collective variables implementation for NAMD
+# CFACV -- a collective variables implementation for NAMD
 
 Cameron F Abrams, Drexel University, Philadelphia, Pennsylvania  
 cfa22@drexel.edu  
@@ -9,9 +9,7 @@ CFACV is citable and archived at Zenodo: [![DOI](https://zenodo.org/badge/20736/
 
 Please also cite "Cameron F. Abrams and Eric Vanden-Eijnden, "Large-scale conformational sampling of proteins using temperature-accelerated molecular dynamics," Proc. Natl. Acad. Sci. USA 107 4961-4966 (2010)"  
 
-
-
-###INTRODUCTION
+### INTRODUCTION
 
 CFACV is a simple collective variables implementation for NAMD that
 uses 'tclforces' and implements Temperature-Accelerated Molecular
@@ -28,7 +26,7 @@ In this release (v1.0), there are three subdirectories, summarized below:
 3. examples -- three example TAMD simulation inputs
 
 
-###INSTRUCTIONS FOR RUNNING THE HIV-1 MA EXAMPLE
+### INSTRUCTIONS FOR RUNNING THE HIV-1 MA EXAMPLE
 
 1. Compile shared object libraries cfacv.so and libgenericdataspace.so
 
@@ -58,7 +56,7 @@ The example in the directory alad/ is CHARM22 alanine dipeptide (residue ALAD) i
 angles as CV's, driven by TAMD.  The directory ala2-fixed-phi-psi/ is an example in which 
 cfacv is used to simply restrain at a particular (phi,psi).
 
-###INSTRUCTIONS FOR INSTALLING CFACV
+### INSTRUCTIONS FOR INSTALLING CFACV
 
 1. copy the cfacv/ directory wholesale under your home directory
 
@@ -74,7 +72,7 @@ In any run directory where you want to use cfacv, make sure the
    NAMD configuration file references the right path for cfacv_tclforces.tcl
    as being $env(HOME)/cfacv/tcl/cfacv_tclforces.tcl or equivalent.
 
-###MORE DETAILS
+### MORE DETAILS
 
 CFACV interfaces with NAMD via a tclforces script called
 'cfacv_tclforces.tcl' that initializes a workspace and then defines
