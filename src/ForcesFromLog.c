@@ -89,10 +89,12 @@ int main ( int argc, char * argv[] ) {
   FILE * fp;
   char testStr[9], *p;
 
-  int i,line,j;
+  int i,line,j,m,n;
   int dim=CVDIM; // default
 
   double k = 100.0; // kcal/mol/A^2
+  double T = 300.0; // kelvin
+  double beta;
 
   pt * z=(pt*)malloc(NDATA*sizeof(pt)), * zp;
   pt * th=(pt*)malloc(NDATA*sizeof(pt)), * thp;
@@ -101,10 +103,15 @@ int main ( int argc, char * argv[] ) {
   pt * rrsum, * rravg;
   pt Disp_th_z, * d=&Disp_th_z;
 
+  double *** dijsum=(double***)malloc(NDATA*sizeof(double**));
+
   int nz, nth, nfd;
   int dihed = 0;
 
   int quiet=0;
+
+  int echo_point=1,echo_gradient=1,echo_force=1;
+  int echo_hessian=0;
 
   for (i=1;i<argc;i++) {
     if (!strcmp(argv[i],"-f")) lfn=argv[++i];
@@ -113,12 +120,24 @@ int main ( int argc, char * argv[] ) {
     if (!strcmp(argv[i],"-ofn")) ofn=argv[++i];
     if (!strcmp(argv[i],"-dihed")) dihed=1;
     if (!strcmp(argv[i],"-quiet")) quiet=1;
+    if (!strcmp(argv[i],"+p")) echo_point=0;
+    if (!strcmp(argv[i],"+f")) echo_force=0;
+    if (!strcmp(argv[i],"+g")) echo_gradient=0;
+    if (!strcmp(argv[i],"-H")) echo_hessian=1;
+    if (!strcmp(argv[i],"-T")) T=atof(argv[++i]);
   }
+
+  beta = 1.0/(1.98735e-3*T); // [=] (kcal/mol)^{-1}
 
   for (i=0;i<NDATA;i++) {
     pt_malloc(&z[i],i,dim);
     pt_malloc(&th[i],i,dim);
     pt_malloc(&fd[i],i,dim);
+    dijsum[i]=(double**)malloc(dim*sizeof(double*));
+    for (j=0;j<dim;j++) {
+      dijsum[i][j]=(double*)malloc(dim*sizeof(double));
+      for (m=0;m<dim;m++) dijsum[i][j][m]=0.0;
+    }
   }
   pt_malloc(d,0,dim);
 
@@ -219,6 +238,11 @@ int main ( int argc, char * argv[] ) {
       vecscale(&ravg[i],&rsum[i],k/(1.0+i));
       vecadd(&rrsum[i],&rrsum[i-1],fdp);
       vecscale(&rravg[i],&rrsum[i],1.0/(1.0+i));
+      for (m=0;m<dim;m++) {
+        for (n=0;n<=j;n++) {
+	   dijsum[i][m][n] += d->r[m]*d->r[n];
+        }
+      }
     }
 
     fp=fopen(ofn,"w");
@@ -234,9 +258,10 @@ int main ( int argc, char * argv[] ) {
   //  fprintf(stderr,"Generated %s.\n",ofn);
     i--;
     //thp=&th[i];
-    for (j=0;j<dim;j++) fprintf(stdout,"%.8lf ",zp->r[j]);
-    for (j=0;j<dim;j++) fprintf(stdout,"%.8lf ",ravg[i].r[j]);
-    for (j=0;j<dim;j++) fprintf(stdout,"%.8lf ",rravg[i].r[j]);
+    if (echo_point) for (j=0;j<dim;j++) fprintf(stdout,"%.8lf ",zp->r[j]);
+    if (echo_force) for (j=0;j<dim;j++) fprintf(stdout,"%.8lf ",ravg[i].r[j]);
+    if (echo_gradient) for (j=0;j<dim;j++) fprintf(stdout,"%.8lf ",rravg[i].r[j]);
+    if (echo_hessian) for (m=0;m<dim;m++) for (n=0;n<=m;n++) fprintf(stdout,"%.8lf ",(m==n?k:0)-beta*(k*k*dijsum[i][n][m]/nz-ravg[i].r[n]*ravg[i].r[m]));
     fprintf(stdout,"\n");
   }
 
