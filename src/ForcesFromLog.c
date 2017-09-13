@@ -31,7 +31,7 @@ pt * pt_malloc ( pt * p, int i, int d ) {
 }
 
 #ifndef NDATA
-#define NDATA 100000
+#define NDATA 500000
 #endif
 
 void vecdiff ( pt * c, pt * a, pt * b, int dihed) {
@@ -250,7 +250,7 @@ int main ( int argc, char * argv[] ) {
     for (i=0;i<nz;i++) {
       fprintf(fp,"%i ",i);
       for (j=0;j<dim;j++) fprintf(fp,"%.8lf ",ravg[i].r[j]);
-      fprintf(fp," - ");
+      fprintf(fp," | ");
       for (j=0;j<dim;j++) fprintf(fp,"%.8lf ",rravg[i].r[j]);
       fprintf(fp,"\n");
     }
