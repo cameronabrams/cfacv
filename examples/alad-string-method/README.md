@@ -20,22 +20,20 @@ The objective of a SMCV calculation is to identify a minimum free-energy pathway
 
  ![eqn1](README_images/eqn1.png)
 
-That is, the MFEP is that curve $z(s)$ whose perpendicular components of the metric-tensor-rotated free-energy gradients locally perpendicular to the curve are zero.  (The metric tensor is required because the $\theta$'s can in general be curvilinear functions of atomic configuration $x$.) This curve can (again, almost) be found by first setting up an initial curve arbitrarily, and then solving the differential equation
+That is, the MFEP is that curve ![z_of_s](README_images/z_of_s.png) whose perpendicular components of the metric-tensor-rotated free-energy gradients locally perpendicular to the curve are zero.  (The metric tensor is required because the mapping functions can in general be curvilinear functions of atomic configuration.) This curve can (again, almost) be found by first setting up an initial curve arbitrarily, and then solving the differential equation
 
-$$
-\gamma \dot{z}(s,t) = -\tilde{M}(s,t)\nabla F(s,t) + \lambda(s,t)z^\prime(s,t).
-$$
 
-Here, $\gamma$ is a friction that we can choose, and the second term on the RHS represents reparameterization of the curve.  It's clear that, in general, one needs to know the tensor function $\tilde{M}$ and vector function $\nabla F$ in order to solve this equation, but in the context of a CV space $z$ these functions are statistical-mechanical averages over underlying configuration space $x$; specifically,
+ ![eqn2](README_images/eqn2.png)
 
-$$
-\tilde{M}_{\alpha\beta} = \Big\langle\sum_{i=1}^N \left(\frac{1}{m_i}\frac{\partial\theta_\alpha}{\partial x_i}\frac{\partial \theta_\beta}{\partial x_i}\right)\Big\rangle_z
-$$
-where $m_i$ is the mass of configurational variable $i$, and
-$$
-\nabla F_\alpha = \Big\langle\kappa(\theta_\alpha - z_\alpha)\Big\rangle_z.
-$$
-Here, the $z$ subscripts on the angle brackets denote that one needs to compute these locally in CV space.  Since these are ensemble averages, we of course run MD on an atomistic system to compute them, but to keep them local, we run _restrained_ MD using a harmonic external potential $-\frac12\kappa(\theta-z)^2$.  Of course, one could _precompute_ $\tilde{M}$ and $\nabla F$ at finite but uniformly space set of discrete points spanning CV space, and then find an MFEP by direct explicit integration; however, this is unpractical in most CV spaces.  
+Here, ![gamma](README_images/gamma.png) is a friction that we can choose, and the second term on the RHS represents reparameterization of the curve.  It's clear that, in general, one needs to know the tensor function ![tilde_M](README_images/tilde_M.png) and vector function ![nabla_F](README_images/nabla_F.png) in order to solve this equation, but in the context of a CV space $z$ these functions are statistical-mechanical averages over underlying configuration space ![x](README_images/x.png); specifically,
+
+ ![eqn3](README_images/eqn3.png)
+
+where ![m_sub_i](README_images/m_sub_i.png) is the mass of configurational variable ![i](README_images/i.png), and
+
+ ![eqn4](README_images/eqn4.png)
+
+Here, the ![z](README_images/z.png) subscripts on the angle brackets denote that one needs to compute these locally in CV space.  Since these are ensemble averages, we of course run MD on an atomistic system to compute them, but to keep them local, we run _restrained_ MD using a harmonic external potential $-\frac12\kappa(\theta-z)^2$.  Of course, one could _precompute_ $\tilde{M}$ and $\nabla F$ at finite but uniformly space set of discrete points spanning CV space, and then find an MFEP by direct explicit integration; however, this is unpractical in most CV spaces.  
 
 In practice, SMCV represents $z(s)$ as a set of $R$ discrete points $z^p,\ p=1,\dots,R$, each of which is termed an "image", and which together constitute the "string" representation of the curve $z(s)$.  We use a single companion restrained all-atom MD system for each image $z^p$ to compute $\tilde{M}(z^p)$ and $\nabla F(z^p)$.  In traditional SMCV, one should run long MD at fixed $z^p$ to compute these, and then a finite update step that solves the string update is applied to give the next set of image $z^p$ values, and the cycle repeats.  In the ``on-the-fly'' variant, the string updates are chosen to be very small (by setting $\gamma$ to be large) so that updates of $z^p$ together with $\tilde{M}$ and $\nabla F$ are computed in lockstep.  (In the implementation here, the number of MD timesteps per string image update for this averaging can be set as low as 1 to implement the OTF version.)  In either case, the MFEP is located when the image updates no longer appreciably move the string.  So, think of a typical SMCV simulation as something like replica-exchange, except that as the replicas are evolving, their "mapping points" in CV-space are moving as a string toward an MFEP.
 
