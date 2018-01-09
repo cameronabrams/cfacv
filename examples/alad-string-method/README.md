@@ -5,9 +5,9 @@ This README resides in the alad-string-method subdirectory of github.com/cameron
 
 > **Note:**  It is probably a good idea to try out the earlier CFACV tutorials first:
 
-> - alad-fixed-phi-psi/: MD with harmonic restraints on <center>![phi](README_images/phi.png)</center> and ![psi](README_images/psi.png) angles
-> - alad-tamd/: TAMD where $z = (\phi,\psi)$
-> - alad-single-sweep/: single-sweep reconstruction of the free-energy surface $F(\phi,\psi)$
+> - alad-fixed-phi-psi/: MD with harmonic restraints on ![phi](README_images/phi.png) and ![psi](README_images/psi.png) angles
+> - alad-tamd/: TAMD where ![z1](README_images/z1.png)
+> - alad-single-sweep/: single-sweep reconstruction of the free-energy surface ![F1](README_images/F1.png)
 
 It is also assumed the reader has a good working knowledge of MD simulations in general and NAMD in particular.  Because this implementation is based on NAMD's replica exchange feature, it also requires a NAMD binary with MPI enabled.
 
@@ -15,7 +15,7 @@ It is also assumed the reader has a good working knowledge of MD simulations in 
 
 The current implementation of SMCV is *almost* what is described in Maragliano and Vanden-Eijnden, "On-the-fly string method for minimum free energy paths calculation", *Chemical Physics Letters* 2007;**446**:182-190.  (I'll get to the meaning of "almost" in a bit).  
 
-The objective of a SMCV calculation is to identify a minimum free-energy pathway (MFEP) through a collective variable (CV) space chosen by us.  The multidimensional variable $z$ represents a location in CV space, and one can map an all-atom (3$N$-dimensional, where $N$ is the number of atoms) configuration $x$ to a point in CV space using the multidimensional mapping function $\theta(x)$.  (For alanine dipeptide, the CV space most commonly explored is the 2-D space spanned by the backbone dihedral angles $\phi$ and $\psi$.)  An MFEP connects two separated, local minima with a curve $z(s)$ that satisfies 
+The objective of a SMCV calculation is to identify a minimum free-energy pathway (MFEP) through a collective variable (CV) space chosen by us.  The multidimensional variable ![z](README_images/z.png) represents a location in CV space, and one can map an all-atom (3![N](README_images/N.png)-dimensional, where ![N](README_images/N.png) is the number of atoms) configuration ![x](README_images/x.png) to a point in CV space using the multidimensional mapping function ![theta_of_x](README_images/theta_of_x.png).  (For alanine dipeptide, the CV space most commonly explored is the 2-D space spanned by the backbone dihedral angles ![phi](README_images/phi.png) and ![psi](README_images/phi.png).)  An MFEP connects two separated, local minima with a curve ![z_of_s](README_images/z_of_s.png) that satisfies 
 
 $$
 0 = (M(z(s))\nabla F(z(s)))^\perp
