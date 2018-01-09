@@ -5,7 +5,7 @@ This README resides in the alad-string-method subdirectory of github.com/cameron
 
 > **Note:**  It is probably a good idea to try out the earlier CFACV tutorials first:
 
-> - alad-fixed-phi-psi/: MD with harmonic restraints on $\phi$ and $\psi$ angles
+> - alad-fixed-phi-psi/: MD with harmonic restraints on ![phi](phi.png) and $\psi$ angles
 > - alad-tamd/: TAMD where $z = (\phi,\psi)$
 > - alad-single-sweep/: single-sweep reconstruction of the free-energy surface $F(\phi,\psi)$
 
