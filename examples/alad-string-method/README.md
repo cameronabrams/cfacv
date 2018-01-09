@@ -1,5 +1,5 @@
 
-#String Method in Collective Variables -- An Implementation in NAMD v 2.11 using CFACV
+# String Method in Collective Variables -- An Implementation in NAMD v 2.11 using CFACV
 
 This README resides in the alad-string-method subdirectory of github.com/cameronabrams/cfacv/examples/.  The purpose of the readme is to provide an explanation of how to run a string method in collective variables (SMCV) simulation using our CFACV implementation.  The example is a solvated molecule of alanine dipeptide under the CHARMM22 force-field and TIP3P water.  
 
@@ -11,7 +11,7 @@ This README resides in the alad-string-method subdirectory of github.com/cameron
 
 It is also assumed the reader has a good working knowledge of MD simulations in general and NAMD in particular.  Because this implementation is based on NAMD's replica exchange feature, it also requires a NAMD binary with MPI enabled.
 
-##Background
+## Background
 
 The current implementation of SMCV is *almost* what is described in Maragliano and Vanden-Eijnden, "On-the-fly string method for minimum free energy paths calculation", *Chemical Physics Letters* 2007;**446**:182-190.  (I'll get to the meaning of "almost" in a bit).  
 
@@ -42,8 +42,7 @@ In practice, SMCV represents $z(s)$ as a set of $R$ discrete points $z^p,\ p=1,\
 
 Now, about the "almost".  As just mentioned, for each image, this implementation uses a *single* restrained MD simulation (of one or more timesteps) to compute both the metric tensor estimate $\tilde{M}_{\alpha\beta}$ and the free-energy gradient estimate $\frac{\partial F_\kappa}{\partial z_\beta}$.  Strictly speaking, the two must be statistically independent for the SMCV to compute the true MFEP through CV space.  Since here we compute both in the *same* atomistic system, this method computes *not* the exact MFEP, but instead the curve that satisfies eqn. 28 in appendix of the 2007 paper.  (A future version of this release will use *separate* atomistic simulations to compute each of $\tilde{M}_{\alpha\beta}$ and $\frac{\partial F_\kappa}{\partial z_\beta}$.)
 
-##Instructions
-
+## Instructions
 
 > **The short version:**
 > 1. (one time only) download the CFACV repository and compile `cfacv.so`; note that CFACV has been updated with this release of SMCV, so you should just recompile it.
@@ -54,16 +53,16 @@ Now, about the "almost".  As just mentioned, for each image, this implementation
 >    d. create output directory structure, launch SMCV, and monitor for convergence.
 >    e. if desired, run a set of restrained MD simulations on the final string to compute the free-energy profile along the string.
 
-###The Long Version:
+### The Long Version:
 This follows the basic structure of the NAMD version of replica exchange, on which I based this implementation of SMCV.  File names appear in **bold**, and all directories in `monospace` refer to subdirectories of the CFACV repository.  
 
-####Get the latest CFACV implementation
+#### Get the latest CFACV implementation
 
 Clone this repository to your local machine or whatever machine you'll be running on.  Change directory to `src` and issue the command
 
 `make all`
 
-####Setting up and running the example SMCV calculation
+#### Setting up and running the example SMCV calculation
 
 Now go to the `examples/alad-string-method` directory.  The file **job0.conf** is the master NAMD config file in the command line of the NAMD invocation used to start a string method calculation.  For _this_ calculation, which is able to be run on a single workstation, I provide a bash script **runstring.sh** that shows how to invoke a SMCV calculation.  (**runstring.sh** should be easily adaptable into a PBS or SLURM batch submission script.)  The "0" indicates the first in what could be a sequential set of restarts; i.e., a **job1.conf** is the file one sends to NAMD to restart from the latest checkpoint of the simulation run from **job0.conf**.
 
@@ -89,7 +88,7 @@ where the first argument is the base subdirectory name for the output and the se
 
 One more thing in the **stringmethod.conf** file is the stipulation of the variables `steps_per_run`, `num_runs`, and `runs_per_frame`.  A "run" in this context is a length of sequential MD timesteps between updates of the string image locations; in true "on-the-fly* SMCV, this is ONE.  The number of runs (`num_runs`) is just how many string method updates one wants to perform.  The set of runs is broken up arbitrarily into sequential sets called "frames" of size `runs_per_frame` runs, and by default, information about current positions, gradients, and values of the metric tensor are output at the end of each frame.  Restart sets are also generated every few frames, as stipulated by the `frames_per_restart` variable.
 
-####Running the SMCV simulation
+#### Running the SMCV simulation
 
 Taking stock:  You are ready to launch the SMCV simulation for a system of $N$ images provided you have a **stringmethod.conf** file (here, this is **alad_stringmethod.conf**), a **job0.conf** master config file, the **go.job0.0.coor**, **go.job0.1.coor**, **go.job0.2.coor**, etc. (same for **.vel** And **.xsc**) input files, the **restr_init_#-1.inp** inputs, a **base.namd** base config file (here, **alad_base.namd**), any parameter files your system requires, and the output directory structure.  Issue the command
 
@@ -101,7 +100,7 @@ You can monitor the progress by
 
 This history file for replica `0` contains three types of output:  gradients, metric tensors, and current image locations in CV space.  It generates one line of output of each type for each image once per frame.   If there are no errors, the simulation will run for a number of MD timesteps given by the product of `steps_per_run` and `num_runs` in the **alad_stringmethod.conf** input file.  So, say for example you have a system of 24 images with 1 step per run and 20,000 runs and 50 runs per frame, you would expect 400 * 3 * 24 = 28,800 lines of output in `output/0/alad_sm.job0.0.history`.  
 
-####Monitoring for Convergence
+#### Monitoring for Convergence
 
 The script **measurermsd.sh** in the `sbin/` directory provides the capability of computing the average "distance" of the string from a reference string, according to 
 
@@ -115,11 +114,11 @@ where $z^i(t)$ is the instaneous location of image $i$ in CV space at time $t$, 
 
 It needs the name of the string method history file to read Z values from and the number of images.  It will also read the **cv.inp** file to determine the dimensionality of CV space.  It will generate an output file in which each line has the frame number and the RMSD at that point in time, relative to the latest string.  
 
-####Computing the free-energy profile along the string
+#### Computing the free-energy profile along the string
 
 Computing the free energy profile along the string requires running several restrained MD simulations and tallying the free energy gradients and metric tensors.  This is handled by the script **measurefep.sh** in the `sbin/` directory.  Note that in order to run this script, you need to compile two helper C programs: `src/ForcesFromLog.c` and `src/FEPFromForces.c`.  If you issued a `make all` in the `src/` directory, these should have been compiled and their executables should exist in the `bin/` directory.   **measurefep.sh** is extensively commented and should be read carefully.   The default values for the variables it needs conform to the alanine dipeptide tutorial, so just issuing it as `../../sbin/measurefep.sh` should launch the MD simulations in series, resulting finally in the file **fep.out**.
 
-##Conclusion
+## Conclusion
 
 That is the end of the tutorial -- but look for more updates in the future.
 
