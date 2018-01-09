@@ -18,7 +18,7 @@ The current implementation of SMCV is *almost* what is described in Maragliano a
 The objective of a SMCV calculation is to identify a minimum free-energy pathway (MFEP) through a collective variable (CV) space chosen by us.  The multidimensional variable ![z](README_images/z.png) represents a location in CV space, and one can map an all-atom (3![N](README_images/N.png)-dimensional, where ![N](README_images/N.png) is the number of atoms) configuration ![x](README_images/x.png) to a point in CV space using the multidimensional mapping function ![theta_of_x](README_images/theta_of_x.png).  (For alanine dipeptide, the CV space most commonly explored is the 2-D space spanned by the backbone dihedral angles ![phi](README_images/phi.png) and ![psi](README_images/phi.png).)  An MFEP connects two separated, local minima with a curve ![z_of_s](README_images/z_of_s.png) that satisfies 
 
 
-<center>![eqn1](README_images/eqn1.png)</center>
+ ![eqn1](README_images/eqn1.png)
 
 That is, the MFEP is that curve $z(s)$ whose perpendicular components of the metric-tensor-rotated free-energy gradients locally perpendicular to the curve are zero.  (The metric tensor is required because the $\theta$'s can in general be curvilinear functions of atomic configuration $x$.) This curve can (again, almost) be found by first setting up an initial curve arbitrarily, and then solving the differential equation
 
