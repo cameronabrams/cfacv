@@ -89,7 +89,7 @@ One more thing in the **stringmethod.conf** file is the stipulation of the varia
 
 #### Running the SMCV simulation
 
-Taking stock:  You are ready to launch the SMCV simulation for a system of $N$ images provided you have a **stringmethod.conf** file (here, this is **alad_stringmethod.conf**), a **job0.conf** master config file, the **go.job0.0.coor**, **go.job0.1.coor**, **go.job0.2.coor**, etc. (same for **.vel** And **.xsc**) input files, the **restr_init_#-1.inp** inputs, a **base.namd** base config file (here, **alad_base.namd**), any parameter files your system requires, and the output directory structure.  Issue the command
+Taking stock:  You are ready to launch the SMCV simulation for a system of ![N](README_images/N.png) images provided you have a **stringmethod.conf** file (here, this is **alad_stringmethod.conf**), a **job0.conf** master config file, the **go.job0.0.coor**, **go.job0.1.coor**, **go.job0.2.coor**, etc. (same for **.vel** And **.xsc**) input files, the **restr_init_#-1.inp** inputs, a **base.namd** base config file (here, **alad_base.namd**), any parameter files your system requires, and the output directory structure.  Issue the command
 
 `./runstring.sh > run.log &`
 
