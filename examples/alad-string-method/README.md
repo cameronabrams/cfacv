@@ -48,7 +48,7 @@ Now, about the "almost".  As just mentioned, for each image, this implementation
 > 2. For a given SMCV simulation:
 >    a. define CV space and set up initial images;
 >    b. make the output directory tree;
->    c. choose values of $\kappa$ and $\gamma$, and the number of timesteps between string updates (`steps_per_run`), and edit the appropriate input files;
+>    c. choose values of ![kappa](README_images/kappa.png) and ![gamma](README_images/gamma.png), and the number of timesteps between string updates (`steps_per_run`), and edit the appropriate input files;
 >    d. create output directory structure, launch SMCV, and monitor for convergence.
 >    e. if desired, run a set of restrained MD simulations on the final string to compute the free-energy profile along the string.
 
