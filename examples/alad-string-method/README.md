@@ -77,7 +77,7 @@ This command can be monitored (as you might suspect) by
 
 `tail -f init.log`
 
-**mkinitimages.sh** runs a bunch of sequential NAMD simulations to set up the images.  Note that here is the first place you encounter the input files **cv.inp** and **label.pdb**.  These are **very, very important files**, as you should have learned in the very first CFACV tutorial.  Briefly, **label.pdb** is a full PDB file congruent to the system that merely serves to label atoms as belonging either to _no_ group ($\beta$ = 0) or to a specified group ($\beta$ = 1,2,$\dots$).  The center of mass of group $n$ as defined by **label.pdb** is referred to as "center" $(n-1)$ in **cv.inp**.  In this tutorial, we define the two CV's as the $\phi$ and $\psi$ dihedrals; if you examine **label.pdb** and **cv.inp** carefully, you should be able to confirm this for yourself.  Finally, **mkinitimages.sh** generates a separate file for each image with the name **restr_init_#-1.inp**, where the **#**  is replaced by the image number from 0 to 23.  These files contain the value of the point in CV space each image is initially tethered to.  These are also read in by the SMCV calculation at the beginning.
+**mkinitimages.sh** runs a bunch of sequential NAMD simulations to set up the images.  Note that here is the first place you encounter the input files **cv.inp** and **label.pdb**.  These are **very, very important files**, as you should have learned in the very first CFACV tutorial.  Briefly, **label.pdb** is a full PDB file congruent to the system that merely serves to label atoms as belonging either to _no_ group (![beta](README_images/beta.png) = 0) or to a specified group (![beta](README_images/beta.png) = 1,2,...).  The center of mass of group ![n](README_images/litn.png) as defined by **label.pdb** is referred to as "center" ![parens_n_1](README_images/parens_n-1.png) in **cv.inp**.  In this tutorial, we define the two CV's as the ![phi](README_images/phi.png) and ![psi](README_images/psi.png) dihedrals; if you examine **label.pdb** and **cv.inp** carefully, you should be able to confirm this for yourself.  Finally, **mkinitimages.sh** generates a separate file for each image with the name **restr_init_#-1.inp**, where the **#**  is replaced by the image number from 0 to 23.  These files contain the value of the point in CV space each image is initially tethered to.  These are also read in by the SMCV calculation at the beginning.
 
 **alad_stringmethod.conf** also stipulates that image simulation outputs are organized into directories of naming format `output/#/`, where again the `#` is the image number.  To easily generate an empty set of output directories, use the NAMD-provided script **make_output_directories.sh** via
 
@@ -103,15 +103,13 @@ This history file for replica `0` contains three types of output:  gradients, me
 
 The script **measurermsd.sh** in the `sbin/` directory provides the capability of computing the average "distance" of the string from a reference string, according to 
 
-$$
-{\rm RMSD}(t) = \sqrt{\frac{1}{R}\sum_{i=1}^R |z^i(t) - z^i_0|^2}
-$$
+ ![eqn5](README_images/eqn5.png)
 
-where $z^i(t)$ is the instaneous location of image $i$ in CV space at time $t$, $z^i_0$ is a reference position of image $i$ (which here is the position after the **latest** update), and as before $R$ is the number of images.  Anytime during the run, invoke this as
+where ![z_sup_i_of_t](README_images/z_sup_i_of_t.png) is the instaneous location of image ![i](README_images/i.png) in CV space at time ![t](README_images/t.png), ![z_sup_i_of_0](README_images/z_sup_i_of_0.png) is a reference position of image ![i](README_images/i.png) (which here is the position after the **latest** update), and as before ![R](README_images/R.png) is the number of images.  Anytime during the run, invoke this as
 
 `../../sbin/measurermsd.sh -smh output/0/alad_sm.job0.0.history -ni 24 > rmsd.0.out &`
 
-It needs the name of the string method history file to read Z values from and the number of images.  It will also read the **cv.inp** file to determine the dimensionality of CV space.  It will generate an output file in which each line has the frame number and the RMSD at that point in time, relative to the latest string.  
+It needs the name of the string method history file to read Z values from and the number of images.  It will also read the **cv.inp** file to determine the dimensionality of CV space.  It will generate an output file in which each line has the frame number and the RMSD at that point in time, relative to the latest string.
 
 #### Computing the free-energy profile along the string
 
