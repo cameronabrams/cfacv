@@ -46,11 +46,11 @@ Now, about the "almost".  As just mentioned, for each image, this implementation
 > **The short version:**
 > 1. (one time only) download the CFACV repository and compile `cfacv.so`; note that CFACV has been updated with this release of SMCV, so you should just recompile it.
 > 2. For a given SMCV simulation:
->  1. define CV space and set up initial images;
->  2. make the output directory tree;
->  3. choose values of ![kappa](README_images/kappa.png) and ![gamma](README_images/gamma.png), and the number of timesteps between string updates (`steps_per_run`), and edit the appropriate input files;
->  4. create output directory structure, launch SMCV, and monitor for convergence.
->  5. if desired, run a set of restrained MD simulations on the final string to compute the free-energy profile along the string.
+>   1. define CV space and set up initial images;
+>   2. make the output directory tree;
+>   3. choose values of ![kappa](README_images/kappa.png) and ![gamma](README_images/gamma.png), and the number of timesteps between string updates (`steps_per_run`), and edit the appropriate input files;
+>   4. create output directory structure, launch SMCV, and monitor for convergence.
+>   5. if desired, run a set of restrained MD simulations on the final string to compute the free-energy profile along the string.
 
 ### The Long Version:
 This follows the basic structure of the NAMD version of replica exchange, on which I based this implementation of SMCV.  File names appear in **bold**, and all directories in `monospace` refer to subdirectories of the CFACV repository.  
