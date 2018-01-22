@@ -156,13 +156,14 @@ typedef struct SMDATASPACESTRUCT {
   double reparam_tol;
   int reparam_maxiter;
   double nu; // factor for climbing string method
+  int dual;  // flag indicating whether or not we are using dual-image configuration
 } SMDataSpace;
 
 FILE * my_fopen ( char * name, char * code ) ;
 
 DataSpace * NewDataSpace ( int N, int M, int K, long int seed );
 
-SMDataSpace* New_stringMethod_Dataspace ( int ni, int nz, int outputlevel, double nu, int evolve_ends );
+SMDataSpace* New_stringMethod_Dataspace ( int ni, int nz, int outputlevel, double nu, int evolve_ends, int dual );
 
 int DataSpace_getN ( DataSpace * ds );
 double * SMDataSpace_image_z ( SMDataSpace * sm, int i );

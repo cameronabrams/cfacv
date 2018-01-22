@@ -4,7 +4,7 @@
 %array_functions(int, arrayint);
 %inline %{
 double get_double(double *a, int index) {
-	return a[index];
+  return a[index];
 }
 %}
 %{
@@ -16,7 +16,7 @@ double get_double(double *a, int index) {
 extern void cfacvBanner ( void );
 extern FILE * my_fopen ( char * name, char * code );
 extern DataSpace * NewDataSpace ( int N, int M, int K, long int seed ) ;
-extern SMDataSpace* New_stringMethod_Dataspace ( int ni, int nz, int outputlevel, double nu, int evolve_ends );
+extern SMDataSpace* New_stringMethod_Dataspace ( int ni, int nz, int outputlevel, double nu, int evolve_ends, int dual );
 extern int DataSpace_AddAtomCenter ( DataSpace * ds, int n, int * ind, double * m );
 extern int DataSpace_AddCenter_MassOnly ( DataSpace * ds, double m );
 extern int DataSpace_AddCV ( DataSpace * ds, char * typ, int nind, int * ind ) ;

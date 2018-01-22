@@ -2,7 +2,7 @@
 # and the CFACV tclforces module
 #
 # Cameron F Abrams
-# 2014-2016
+# 2014-2018
 
 # check for base directory name environment variable;
 # if not set, use default
@@ -150,7 +150,10 @@ if { [expr $replica_id == 0] } {
 # (all replicas have a restraint dataspace too)
 if {[expr $replica_id == 0]} {
   puts stdout "CFACV/SM) Calling for SM dataspace allocation for $nr images in $SMPARAMS(nz)-dim CV SPACE"
-  set smds [New_stringMethod_Dataspace $nr $SMPARAMS(nz) $SMPARAMS(outputlevel) $SMPARAMS(nu) $SMPARAMS(evolve_ends)]
+  if { $SMPARAMS(dual) } {
+     puts stdout "CFACV/SM) Dual-image configuration; first [expr $nr / 2] images are reference."
+  }
+  set smds [New_stringMethod_Dataspace $nr $SMPARAMS(nz) $SMPARAMS(outputlevel) $SMPARAMS(nu) $SMPARAMS(evolve_ends) $SMPARAMS(dual)]
   for {set i 0} {$i < $nr} {incr i} {
     ListToArray_Data [SMDataSpace_image_z $smds $i] $image_z($i)
   }

@@ -1111,13 +1111,27 @@ void DataSpace_BinaryReportRestraints ( DataSpace * ds, int step, int outputleve
   fflush(fp);
 }
 
+/* Update image 'img' based on gradients and metric tensors */
 int SMDataSpace_RawImageUpdate ( SMDataSpace * sm, double stepsize, int img ) {
   if (sm) {
-    if (img>=0 && img<sm->ni) {
+    int ni=sm->ni;
+//    int tst;
+    if (sm->dual) ni/=2;
+//    tst=img + ((sm->dual&&(img>=ni))?(-ni):0);
+//    if (tst<0 || tst>sm->ni) {
+//      fprintf(stderr,"ERROR: img-%i (of %i) index error (%i=%i+%i) for sm->g[] [%s] tst\n",
+//         img,ni,tst,img,(sm->dual&&(img>=ni))?(-ni):0,
+//         sm->dual?"DUAL":"SINGLE");fflush(stderr);exit(-1);
+//    }
+    if (img>=0 && img<ni) {
       double * z=sm->z[img];
       double * oldz=sm->oldz[img];
-      double * g=sm->g[img];
-      double * M=sm->MM[img];
+      /* if we are using dual-image mode, then if this image's index is less than ni,
+         use the metric tensor from it's partner, shifted by ni;  if this image's
+         index is greater than or equal to ni, use the gradient from the (-ni)-shifted
+         partner */
+      double * g=sm->g[ img + ((sm->dual&&(img>=ni))?(-ni):0)];
+      double * M=sm->MM[img + ((sm->dual&&(img< ni))?  ni :0)];
       // put in abililty to see full update
       int n = sm->nz;
       int i,j;
@@ -1138,7 +1152,7 @@ int SMDataSpace_MoveString ( SMDataSpace * sm, double stepsize ) {
     int img;
     int ni=sm->ni;
 
-//    fprintf(stderr,"CFACV/C) SM moving string with stepsize %.6lf\n",stepsize);fflush(stderr);
+    //fprintf(stderr,"CFACV/C) SM moving [%s]-string with stepsize %.6lf\n",sm->dual?"DUAL":"SINGLE",stepsize);fflush(stderr);
 
     // perform raw update of each z-position
     if (sm->evolve_ends) SMDataSpace_RawImageUpdate(sm,stepsize,0);
@@ -1152,11 +1166,11 @@ int SMDataSpace_MoveString ( SMDataSpace * sm, double stepsize ) {
   } 
 }
 
-SMDataSpace * New_stringMethod_Dataspace ( int ni, int nz, int outputlevel, double nu, int evolve_ends  ) {
+SMDataSpace * New_stringMethod_Dataspace ( int ni, int nz, int outputlevel, double nu, int evolve_ends, int dual ) {
   SMDataSpace * sm = (SMDataSpace*)malloc(sizeof(SMDataSpace));
   int i,j;
 
-  fprintf(stderr,"CFACV/C) Allocating new string method dataspace (%i,%i)\n",ni,nz);
+  fprintf(stderr,"CFACV/C) Allocating new string method dataspace (%i[%s],%i)\n",ni,dual?"DUAL":"SINGLE",nz);
   fflush(stderr);
 
   if (!nz) {
@@ -1168,6 +1182,8 @@ SMDataSpace * New_stringMethod_Dataspace ( int ni, int nz, int outputlevel, doub
   sm->nz=nz;
   sm->outputlevel=outputlevel;
   sm->evolve_ends=evolve_ends;
+
+  sm->dual=dual;
 
   sm->z=(double**)malloc(ni*sizeof(double*));
   for (i=0;i<ni;i++) sm->z[i]=(double*)malloc(nz*sizeof(double));
@@ -1322,6 +1338,14 @@ int SMDataSpace_reparameterize ( SMDataSpace * sm ) {
     double err=1000.0,sum, sum2, d;
     int no_iter=0;
 
+    /* if we are using dual-images, then the first half of the images are the reference string; and the
+       second half are just slaved congruently */
+    if (sm->dual) {
+      ni/=2;
+      fprintf(stdout,"CFACV/C) reparam of dual-image string; using %i images out of %i as reference\n",
+        ni,sm->ni);
+    }
+
     /* preserve the ends; by definition the ends don't move as a result of reparameterization! */
     sm_cop(sm->zn[0],sm->z[0],nz);
     sm_cop(sm->zn[ni-1],sm->z[ni-1],nz);
@@ -1344,43 +1368,46 @@ int SMDataSpace_reparameterize ( SMDataSpace * sm ) {
       fprintf(stdout,"\n");
     }
 
-      /* 2. for each point on raw string, excluding ends... */
-      for (i=1;i<(ni-1);i++) {
-	tk=-1;
-	for (k=1;tk==-1&&k<ni;k++) {
-	  if ((L[k-1])<s[i] && s[i]<=(L[k]+del)) {
-	    tk=k;
-	  }
-	}
-	/* tk is now the index of the point on the un-reparameterized string
-	   for which the actual arc length is the ceiling of the desired arc
-	   length for the i'th point */
-	if (tk!=-1) {
-	  /* compute vector displacement between tk and tk-1 */
-	  sm_sub(tmp1,sm->z[tk],sm->z[tk-1],nz);
-	  /* scale result */
-	  sm_scl(tmp1,(s[i]-L[tk-1])/(L[tk]-L[tk-1]),nz);
-	  /* add to previous position */
-	  sm_add(tmp2,tmp1,sm->z[tk-1],nz);
-	  sm_cop(sm->zn[i],tmp2,nz);
-	} else {
-	  fprintf(stderr,"ERROR: could not reparameterize at image %i\n",i);
-	  exit(1);
-	}
+    /* 3. for each point on raw string, excluding ends... */
+    for (i=1;i<(ni-1);i++) {
+      tk=-1;
+      for (k=1;tk==-1&&k<ni;k++) {
+        if ((L[k-1])<s[i] && s[i]<=(L[k]+del)) {
+          tk=k;
+        }
       }
-      for (i=0;i<ni;i++) sm->z[i]=sm->zn[i];
-      /* check the convergence of the reparameterization */
-      err=0.0;
-      sum=0.0;
-      sum2=0.0;
-      for (i=1;i<ni;i++) {
-	d=sm_euc(sm->z[i-1],sm->z[i],nz);
-	sum+=d;
-	sum2+=d*d;
+      /* tk is now the index of the point on the un-reparameterized string
+         for which the actual arc length is the ceiling of the desired arc
+         length for the i'th point */
+      if (tk!=-1) {
+        /* compute vector displacement between tk and tk-1 */
+        sm_sub(tmp1,sm->z[tk],sm->z[tk-1],nz);
+        /* scale result */
+        sm_scl(tmp1,(s[i]-L[tk-1])/(L[tk]-L[tk-1]),nz);
+        /* add to previous position */
+        sm_add(tmp2,tmp1,sm->z[tk-1],nz);
+        sm_cop(sm->zn[i],tmp2,nz);
+      } else {
+        fprintf(stderr,"ERROR: could not reparameterize at image %i\n",i);
+        exit(1);
       }
-      err=sqrt((sum2-sum*sum/(ni-1))/(ni-1));
-      if (sm->outputlevel>0) 
-        fprintf(stdout,"CFACV/C) reparam iter %i err %.5le tol %.5le\n",iter,err,sm->reparam_tol);
+    }
+
+    for (i=0;i<ni;i++) sm->z[i]=sm->zn[i];
+    if (sm->dual) for (i=ni;i<sm->ni;i++) sm->z[i]=sm->zn[i]=sm->z[i-ni];
+ 
+    /* check the convergence of the reparameterization */
+    err=0.0;
+    sum=0.0;
+    sum2=0.0;
+    for (i=1;i<ni;i++) {
+      d=sm_euc(sm->z[i-1],sm->z[i],nz);
+      sum+=d;
+      sum2+=d*d;
+    }
+    err=sqrt((sum2-sum*sum/(ni-1))/(ni-1));
+    if (sm->outputlevel>0) 
+      fprintf(stdout,"CFACV/C) reparam iter %i err %.5le tol %.5le\n",iter,err,sm->reparam_tol);
       if (no_iter) no_iter=0;
       iter++;
     }
@@ -1395,6 +1422,13 @@ int SMDataSpace_reparameterize ( SMDataSpace * sm ) {
 	fprintf(stdout,"%.5lf|",sm_euc(sm->z[i-1],sm->z[i],nz));
       }
       fprintf(stdout,"\n");
+      if (sm->dual) {
+        fprintf(stdout,"CFACV/C)    plus partner images in dual-image configuration |");
+        for (i=ni+1;i<sm->ni;i++) {
+          fprintf(stdout,"%.5lf|",sm_euc(sm->z[i-1],sm->z[i],nz));
+        }
+        fprintf(stdout,"\n");
+      }
       fflush(stdout);
     }
     free(tmp1);
