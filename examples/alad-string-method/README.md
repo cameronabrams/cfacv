@@ -95,6 +95,12 @@ You can monitor the progress by
 
 This history file for replica `0` contains three types of output:  gradients, metric tensors, and current image locations in CV space.  It generates one line of output of each type for each image once per frame.   If there are no errors, the simulation will run for a number of MD timesteps given by the product of `steps_per_run` and `num_runs` in the **alad_stringmethod.conf** input file.  So, say for example you have a system of 24 images with 1 step per run and 20,000 runs and 50 runs per frame, you would expect 400 * 3 * 24 = 28,800 lines of output in `output/0/alad_sm.job0.0.history`.  
 
+#### Animating the string evolution
+
+The **mov/** directory contains a shell script and a helper gnuplot script that can be used to make an mpeg animation of the string evolution (note this is only OK to do in a 2-D CV space!).  It uses the free-energy surface for alanine dipeptide computed in the single-sweep example, so make sure you've done that first.  This is a still image from this animation:
+
+ ![image1](README_images/string1.png)
+
 #### Monitoring for Convergence
 
 The script **measurermsd.sh** in the `sbin/` directory provides the capability of computing the average "distance" of the string from a reference string, according to 
@@ -103,9 +109,13 @@ The script **measurermsd.sh** in the `sbin/` directory provides the capability o
 
 where ![z_sup_i_of_t](README_images/z_sup_i_of_t.png) is the instaneous location of image ![i](README_images/i.png) in CV space at time ![t](README_images/t.png), ![z_sup_i_of_0](README_images/z_sup_i_of_0.png) is a reference position of image ![i](README_images/i.png) (which here is the position after the **latest** update), and as before ![R](README_images/R.png) is the number of images.  Anytime during the run, invoke this as
 
-`../../sbin/measurermsd.sh -smh output/0/alad_sm.job0.0.history -ni 24 > rmsd.0.out &`
+`../../sbin/measurermsd.sh`
 
-It needs the name of the string method history file to read Z values from and the number of images.  It will also read the **cv.inp** file to determine the dimensionality of CV space.  It will generate an output file in which each line has the frame number and the RMSD at that point in time, relative to the latest string.
+This will assume that the name of the string method config file is **alad_stringmethod.conf** unless you specify another one using the "-smc" switch.  It will also assume the history file is **output/0/alad_sm.job0.0.history** unless you specify another one with the "-smh" switch.  It will also read the **cv.inp** file to determine the dimensionality of CV space.  It will generate an output file **rmsd.dat** in which each line has the frame number and the RMSD at that point in time, relative to the latest string.
+The bash script **rmsd.sh** will produce a plot of the rmsd vs iteration number that looks like this:
+
+ ![rmsd](README_images/rmsd-crop.png)
+
 
 #### Computing the free-energy profile along the string
 

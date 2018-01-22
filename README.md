@@ -65,7 +65,7 @@ cfacv is used to simply restrain at a particular (phi,psi).
 3. cd src; make all
 
 
-That's it!
+That's it!  Note that you need to have the Gnu Scientific Library and Headers installed; that is, the gsl and gsl-devel packages.
 
 
 In any run directory where you want to use cfacv, make sure the
