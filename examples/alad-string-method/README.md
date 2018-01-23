@@ -54,6 +54,7 @@ This follows the basic structure of the NAMD version of replica exchange, on whi
 #### Get the latest CFACV implementation
 
 Clone this repository to your local machine or whatever machine you'll be running on.  Change directory to `src` and issue the command
+`make all`
 
 
 Reminder that you need the Gnu Scientific Library (gsl) and its headers (gsl-devel) installed.
