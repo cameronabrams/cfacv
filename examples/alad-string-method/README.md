@@ -76,7 +76,7 @@ This command can be monitored (as you might suspect) by
 
 `tail -f init.log`
 
-**mkinitimages.sh** runs a bunch of sequential NAMD simulations to set up the images.  Note that here is the first place you encounter the input files **cv.inp** and **label.pdb**.  These are **very, very important files**, as you should have learned in the very first CFACV tutorial.  Briefly, **label.pdb** is a full PDB file congruent to the system that merely serves to label atoms as belonging either to _no_ group (![beta](README_images/beta.png) = 0) or to a specified group (![beta](README_images/beta.png) = 1,2,...).  The center of mass of group ![n](README_images/litn.png) as defined by **label.pdb** is referred to as "center" ![parens_n_1](README_images/parens_n-1.png) in **cv.inp**.  In this tutorial, we define the two CV's as the ![phi](README_images/phi.png) and ![psi](README_images/psi.png) dihedrals; if you examine **label.pdb** and **cv.inp** carefully, you should be able to confirm this for yourself.  Finally, **mkinitimages.sh** generates a separate file for each image with the name **restr_init_#-1.inp**, where the **#**  is replaced by the image number from 0 to 23.  These files contain the value of the point in CV space each image is initially tethered to.  These are also read in by the SMCV calculation at the beginning.
+**mkinitimages.sh** runs a bunch of sequential NAMD simulations to set up the images.  Note that here is the first place you encounter the input files **cv.inp** and **label.pdb**.  These are **very, very important files**, as you should have learned in the very first CFACV tutorial.  Briefly, **label.pdb** is a full PDB file congruent to the system that merely serves to label atoms as belonging either to _no_ group (![beta](README_images/beta.png) = 0) or to a specified group (![beta](README_images/beta.png) = 1,2,...).  The center of mass of group ![n](README_images/litn.png) as defined by **label.pdb** is referred to as "center" ![parens_n_1](README_images/parens_n-1.png) in **cv.inp**.  In this tutorial, we define the two CV's as the ![phi](README_images/phi.png) and ![psi](README_images/psi.png) dihedrals; if you examine **label.pdb** and **cv.inp** carefully, you should be able to confirm this for yourself.  Finally, **mkinitimages.sh** generates a separate file for each image with the name **restr.job0.#-1.inp**, where the **#**  is replaced by the image number from 0 to 23.  These files contain the value of the point in CV space each image is initially tethered to.  These are also read in by the SMCV calculation at the beginning.
 
 **alad_stringmethod.conf** also stipulates that image simulation outputs are organized into directories of naming format `output/#/`, where again the `#` is the image number.  To easily generate an empty set of output directories, use the NAMD-provided script **make_output_directories.sh** via
 
@@ -88,7 +88,7 @@ One more thing in the **stringmethod.conf** file is the stipulation of the varia
 
 #### Running the SMCV simulation
 
-Taking stock:  You are ready to launch the SMCV simulation for a system of ![R](README_images/R.png) images provided you have a **stringmethod.conf** file (here, this is **alad_stringmethod.conf**), a **job0.conf** master config file, the **go.job0.0.coor**, **go.job0.1.coor**, **go.job0.2.coor**, etc. (same for **.vel** And **.xsc**) input files, the **restr_init_#-1.inp** inputs, a **base.namd** base config file (here, **alad_base.namd**), any parameter files your system requires, and the output directory structure.  Issue the command
+Taking stock:  You are ready to launch the SMCV simulation for a system of ![R](README_images/R.png) images provided you have a **stringmethod.conf** file (here, this is **alad_stringmethod.conf**), a **job0.conf** master config file, the **go.job0.0.coor**, **go.job0.1.coor**, **go.job0.2.coor**, etc. (same for **.vel** And **.xsc**) input files, the **restr.job0.#-1.inp** input files that give the anchor positions of the initial images in CV space, a **base.namd** base config file (here, **alad_base.namd**), any parameter files your system requires, and the output directory structure.  Issue the command
 
 `./runstring.sh > run.log &`
 
@@ -119,7 +119,7 @@ The bash script **rmsd.sh** will produce a plot of the rmsd vs iteration number 
 
  ![rmsd](README_images/rmsd-crop.png)
 
-Notice how it ends at zero RMSD by construction, since it is measuring RMSD relative to the latest string position; invoking this after the run has completed simply uses the final interation position.
+Notice how it ends at zero RMSD by construction, since it is measuring RMSD relative to the latest string position; invoking this after the run has completed simply uses the final interation position.  This data shows that the string is converged to the MFEP well before even 10,000 iterations is reached; the 0.1 RMSD represents thermal fluctuations.
 
 #### Computing the free-energy profile along the string
 
@@ -135,5 +135,5 @@ This curve is a measure of the free energy along the string shown in the figure 
 
 ## Conclusion
 
-That is the end of the tutorial -- but look for more updates in the future.
+That is the end of the tutorial -- but look for more updates in the future.  The next update will feature the ability to restart a SMCV calculation from an intermediate iteration.
 

@@ -9,4 +9,4 @@ bin/
 *.swp
 ref_md/
 *-working*/
-output.tgz
+output.*tgz
