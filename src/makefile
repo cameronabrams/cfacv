@@ -1,9 +1,9 @@
 # CFACV -- a simple collective-variables module for NAMD
 #
-# Cameron F Abrams 2016
+# Cameron F Abrams 2016-2018
 # Drexel University, Philadelphia, Pennsylvania
 #
-# cameronabrams@gmail.com
+# cfa22@drexel.edu
 #
 # makefile for cfacv.so, libgenericdataspace.so
 # forcesFromLog and Reconstruct (for Single-Sweep)
@@ -13,7 +13,7 @@ CC=gcc
 GSL = -lgsl -lgslcblas
 LIBS += -lm
 
-CFLAGS += -O3
+CFLAGS += -O3 -I/usr/include/tcl
 
 USER_FLAGS =
 
