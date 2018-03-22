@@ -14,7 +14,7 @@
 #
 # default values
 cv_inp=cv.inp
-sm_history=output/0/alad_sm.job0.0.history
+string_method_history=output/0/alad_sm.job0.0.history
 STRING_METHOD_CONFIG=alad_stringmethod.conf
 CFACV_BASEDIR=/home/cfa/research/cfacv
 
@@ -82,9 +82,9 @@ NCVI=`echo "$NCV - 1" | bc`
 CVL=`grep -v ^\# $cv_inp | awk '{print $1}'`
 NII=`echo "$NI - 1" | bc`
 
-NLH=`grep -w reparam $sm_history | wc -l | awk '{print $1}'`
+NLH=`grep -w reparam $string_method_history | wc -l | awk '{print $1}'`
 NITER=`echo "scale=0; $NLH / $N_SYSTEMS" | bc -l`
-echo "History file $sm_history contains info on $NITER iterations over $N_SYSTEMS systems and $NI images."
+echo "History file $string_method_history contains info on $NITER iterations over $N_SYSTEMS systems and $NI images."
 
 echo "Extracting CV values from last $avg_last iterations"
 echo "Initializing Z..."
@@ -102,7 +102,7 @@ for nn in `seq 1 $avg_last`; do
    for i in `seq 0 $NCVI`; do
      echo "Iteration $nn CV component $i..."
      ii=`echo "$i + 1" | bc`
-     THISZ=(`grep -w reparam $sm_history | tail -${NLL} | head -${NI} | awk -F'z ' '{print $2}' | cut -d' ' -f $ii`)
+     THISZ=(`grep -w reparam $string_method_history | tail -${NLL} | head -${NI} | awk -F'z ' '{print $2}' | cut -d' ' -f $ii`)
      echo -n "   -> per-image Z "
      for j in `seq 0 $NII`; do
        echo -n "${THISZ[$j]} "
@@ -134,7 +134,7 @@ for nn in `seq 1 $NITER`; do
    for i in `seq 0 $NCVI`; do
 #     echo "Iteration $nn CV component $i..."
      ii=`echo "$i + 1" | bc`
-     THISZ=(`grep -w reparam $sm_history | head -${NLL} | tail -${NI} | awk -F'z ' '{print $2}' | cut -d' ' -f $ii`)
+     THISZ=(`grep -w reparam $string_method_history | head -${NLL} | tail -${NI} | awk -F'z ' '{print $2}' | cut -d' ' -f $ii`)
 #     echo -n "   -> per-image Z "
      for j in `seq 0 $NII`; do
 #       echo -n "${THISZ[$j]} "
