@@ -3,7 +3,7 @@
 Cameron F Abrams, Drexel University, Philadelphia, Pennsylvania  
 cfa22@drexel.edu  
 215 895 2231  
-(c) 2016   
+(c) 2016-2018   
 
 CFACV is citable and archived at Zenodo: [![DOI](https://zenodo.org/badge/20736/cameronabrams/cfacv.svg)](https://zenodo.org/badge/latestdoi/20736/cameronabrams/cfacv)  
 
@@ -12,7 +12,7 @@ Please also cite "Cameron F. Abrams and Eric Vanden-Eijnden, "Large-scale confor
 ### INTRODUCTION
 
 CFACV is a simple collective variables implementation for NAMD that
-uses 'tclforces' and implements Temperature-Accelerated Molecular
+uses `tclforces` and implements Temperature-Accelerated Molecular
 Dynamics (TAMD).  Collective variables are functions of atomic
 Cartesian coordinates, and CFACV currently allows for CV's to be
 centers of mass of groupings of atoms and any lengths, angles, and
@@ -65,25 +65,26 @@ cfacv is used to simply restrain at a particular (phi,psi).
 3. cd src; make all
 
 
-That's it!  Note that you need to have the Gnu Scientific Library and Headers installed; that is, the gsl and gsl-devel packages.
+That's it!  Note that you need to have the Gnu Scientific Library and Headers installed; that is, the `gsl` and `gsl-devel` packages.
 
-In any run directory where you want to use cfacv, make sure the
-   NAMD configuration file references the right path for cfacv_tclforces.tcl
-   as being $env(HOME)/cfacv/tcl/cfacv_tclforces.tcl or equivalent.
+In any run directory where you want to use `cfacv`, make sure the
+   NAMD configuration file references the right path for `cfacv_tclforces.tcl`
+   as being `$env(HOME)/cfacv/tcl/cfacv_tclforces.tcl` or wherever you chose to put 
+   this repository.
 
 ### CAN I GET THIS TO WORK ON STAMPEDE2?
 
-Yes!  Jim Phillips' most recent build of NAMD 2.12 (as of this writing, `/work/00288/tg455591/NAMD_LATEST_Linux-KNL-MPI-smp-Stampede`) cannot use CFACV because of a TcL incompatibility.  However, there is a version of `namd2` in my Stampede2 directory that does work with CFACV, and it can be found at `/home1/00634/tg457991/namd/NAMD_2.12_Source/Linux-KNL-icc/namd2`.
+Yes!  Jim Phillips' most recent build of NAMD 2.12 (as of this writing, `/work/00288/tg455591/NAMD_LATEST_Linux-KNL-MPI-smp-Stampede`) cannot use CFACV because of a TcL incompatibility.  However, there is a version of `namd2` in my Stampede2 directory that _does_ work with CFACV, and it can be found at `/home1/00634/tg457991/namd/NAMD_2.12_Source/Linux-KNL-icc/namd2`.
 
 ### MORE DETAILS
 
 CFACV interfaces with NAMD via a tclforces script called
-'cfacv_tclforces.tcl' that initializes a workspace and then defines
-the all-important 'calcforces' procedure.  Procedures called from this
+`cfacv_tclforces.tcl` that initializes a workspace and then defines
+the all-important `calcforces` procedure.  Procedures called from this
 script are defined in cfacv.tcl and much of the implementation is
 housed in cfacv.c.  Swig is used to interface cfacv.tcl and cfacv.c
 to create a shared object library 'cfacv.so' loaded by
-cfacv_tclforces.  (Note: you need swig installed to build the
+cfacv_tclforces.  (Note: you need `swig` installed to build the
 shared-object library.)
 
 The configuration file 'example.conf' contains a tclforces stanza
@@ -121,7 +122,7 @@ implementations need the names of three accessory files:
  In either case, time is measured in *ps* for all TAMD variables.
 
 To understand the implementation, I recommend tracing the code
-beginning with cfacv_tclforces.tcl.  Issue 'make cfacv.so' to build the
+beginning with cfacv_tclforces.tcl.  Issue `make cfacv.so` to build the
 shared object library.
 
 If you are only going to accelerate Cartesian variables, this is good
