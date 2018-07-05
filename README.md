@@ -67,10 +67,13 @@ cfacv is used to simply restrain at a particular (phi,psi).
 
 That's it!  Note that you need to have the Gnu Scientific Library and Headers installed; that is, the gsl and gsl-devel packages.
 
-
 In any run directory where you want to use cfacv, make sure the
    NAMD configuration file references the right path for cfacv_tclforces.tcl
    as being $env(HOME)/cfacv/tcl/cfacv_tclforces.tcl or equivalent.
+
+### CAN I GET THIS TO WORK ON STAMPEDE2?
+
+Yes!  Jim Phillips' most recent build of NAMD 2.12 (as of this writing, `/work/00288/tg455591/NAMD_LATEST_Linux-KNL-MPI-smp-Stampede`) cannot use CFACV because of a TcL incompatibility.  However, there is a version of `namd2` in my Stampede2 directory that does work with CFACV, and it can be found at `/home1/00634/tg457991/namd/NAMD_2.12_Source/Linux-KNL-icc/namd2`.
 
 ### MORE DETAILS
 
