@@ -134,3 +134,13 @@ Please contact me with any questions or problems.  This is not a professional
 software release, so I fully anticipate there are bugs or other confusing
 issues.
 
+## ACKNOWLEDGMENTS
+
+1. VMD and NAMD are products of the [Theoretical and Computational Biophysics Group at the NIH Center for Macromolecular Modeling and Bioinformatics at the University of Illinois at Urbana-Champaign](http://www.ks.uiuc.edu)
+
+2. All codes and data in this repository have been made possible with partial support from NIH through grants AI084117, AI093248, GM115249, GM056550, and GM100472, the National Science Foundation through grants DMR-1207389 and MCB-1330205, and the US Army through grants W911NF-12-2-0022, W911-NF-13-1-0046, and W911NF-12-R-0011.
+
+2017-2018, Cameron F Abrams
+
+cfa22@drexel.edu
+
