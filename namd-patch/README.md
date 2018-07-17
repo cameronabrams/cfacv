@@ -1,4 +1,4 @@
-#The Position-Velocity-Rewind patch for NAMD 2.11
+# The Position-Velocity-Rewind patch for NAMD 2.11
 
 Cameron F Abrams, Drexel University, Philadelphia, Pennsylvania  
 cfa22@drexel.edu  
@@ -7,22 +7,26 @@ cfa22@drexel.edu
 
 
 PVRW is a patch to the NAMD 2.11 source code that implements
-the capability, on demand during a running MD simulation,
-rewind all atomic position by one time step AND rewind
+the capability, on-demand during a running MD simulation,
+to rewind all atomic position by one time step AND rewind
 all atomic velocities by one time step and negate them.
 
 
 To use PVRW, copy the patch file to the NAMD_2.11_Source/ directory
 and then patch the src/
 
+```
 patch -p0 < cfa_pvrw_namd211.patch
+```
 
 Now, issue the ./config script with the following additional flags
 
+```
 --cxx-opts "-DCFA_PVRW" --cc-opts "-DCFA_PVRW"
+```
 
 Now, compile NAMD as you would normally.  The resulting
-namd2 executable now has the PVRW capability enabled.
+`namd2` executable now has the PVRW capability enabled.
 
 To use PVRW, it is assumed you are using tclforces to
 set the PVRW flag.  That is, inside your calcforces
@@ -32,7 +36,7 @@ the PVRW is implemented, you must set the pvrw
 flag every time the calcforces procedure is called; that is, every time step.  This is because it is a "broadcast" (but I am sure I could figure out a way to do this
 differently!).
 
-As an example, consider this calcforces procedure:
+As an example, consider this `calcforces` procedure:
 
 ```tcl
   proc calcforces {} {
