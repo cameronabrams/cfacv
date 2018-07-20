@@ -29,8 +29,8 @@ puts stdout "CFACV/SM) replica id $replica_id"
 # check for restart
 # $restart_root is set by the restart file
 # sourced in jobN.conf (N>0) 
-if {[info exists restart_root]} {
-  source $restart_root.tcl
+if {[info exists restart_file]} {
+  source $restart_file
 } else {
   set i_job 0
   set i_run 0
