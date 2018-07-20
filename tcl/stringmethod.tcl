@@ -30,8 +30,7 @@ puts stdout "CFACV/SM) replica id $replica_id"
 # $restart_root is set by the restart file
 # sourced in jobN.conf (N>0) 
 if {[info exists restart_root]} {
-  set restart_root [format $restart_root $replica_id]
-  source $restart_root.$replica_id.tcl
+  source $restart_root.tcl
 } else {
   set i_job 0
   set i_run 0
@@ -39,30 +38,34 @@ if {[info exists restart_root]} {
   if {[info exists first_timestep]} {
     set i_step $first_timestep
   }
-
-  set replica(index) $r
-  set replica(is_Reactant) [expr {$r == 0}]
-  set replica(is_Product) [expr {($r + 1) == $nr}]
-  if {!$replica(is_Reactant)} {
-      set replica(back) [expr $r - 1]
-  } else {
-      set replica(back) NULL
-  }
-  if {!$replica(is_Product)} {
-      set replica(forward) [expr $r + 1]
-  } else {
-      set replica(forward) NULL
-  } 
 }
+
+set replica(index) $r
+set replica(is_Reactant) [expr {$r == 0}]
+set replica(is_Product) [expr {($r + 1) == $nr}]
+if {!$replica(is_Reactant)} {
+set replica(back) [expr $r - 1]
+} else {
+set replica(back) NULL
+}
+if {!$replica(is_Product)} {
+set replica(forward) [expr $r + 1]
+} else {
+set replica(forward) NULL
+} 
+
 
 set job_output_root "$output_root.job$i_job"
 set job_initial_root "$initial_root.job$i_job"
 
+set init_restr_file_root $init_restr_file 
+
 # if i_run > 0, this is a restart
 if {$i_run} {
-  bincoordinates $restart_root.$replica_id.coor
-  binvelocities $restart_root.$replica_id.vel
-  extendedSystem $restart_root.$replica_id.xsc
+  bincoordinates [format "$restart_root.$replica_id.coor" $replica_id]
+  binvelocities [format "$restart_root.$replica_id.vel" $replica_id]
+  extendedSystem [format "$restart_root.$replica_id.xsc" $replica_id]
+  set init_restr_file "$init_restr_file.restart$i_run" 
 } else {
   bincoordinates $job_initial_root.$replica_id.coor
   if { [file exists $job_initial_root.$replica_id.vel] } {
@@ -80,7 +83,9 @@ outputname [format $job_output_root.$replica_id $replica_id]
 outputEnergies $outputEnergiesEvery
 dcdFreq [expr $steps_per_run * $runs_per_frame]
 
-set SMPARAMS(nu) 0.0
+#set SMPARAMS(nu) 0.0
+#****GS******
+set SMPARAMS(nu) $SMPARAMS(nu)
 
 source $namd_config_file
 
@@ -94,6 +99,7 @@ if { $replica(is_Reactant) || $replica(is_Product) } {
     }
 }
 
+puts "EVOLVE $SMPARAMS(evolve)"
 # if SMPARAMS(nu) is set, then enable climbing
 set SMPARAMS(climb) 0
 if { [expr $SMPARAMS(nu) > 0.0] } {
@@ -102,7 +108,7 @@ if { [expr $SMPARAMS(nu) > 0.0] } {
 }
 
 if { $SMPARAMS(climb) && $replica(is_Reactant) } {
-   set SMPARAMS(stepsize) 0 ; # don't let the reactant image evolve
+#    set SMPARAMS(stepsize) 0 ; # don't let the reactant image evolve
 }
 
 
@@ -112,13 +118,20 @@ if { $SMPARAMS(climb) && $replica(is_Reactant) } {
 if { [expr $replica_id == 0] } {
   global z
   set image_z(0) {}
+  set image_z_init(0) {}
+  set init_restr(0) {}
+  set init_b(0) {}
   for {set i 0} {$i < $nr} {incr i} {
     set image_z($i) {}
+    set image_z_init($i) {}
+    set init_restr($i) {}
+    set init_b($i) {}
     set i_restrfn [format $init_restr_file $i]
     set inStream [open $i_restrfn "r"]
     set data [read -nonewline $inStream]
     close $inStream
     set lines [split $data \n]
+    set init_restr($i) $lines
     foreach line $lines {
       foreach elem $line {
         if {[llength $elem] > 1} {
@@ -126,6 +139,8 @@ if { [expr $replica_id == 0] } {
           set val [lindex $elem 1]
           if {$key == "b"||$key == "z"} {
             lappend image_z($i) $val
+            lappend image_z_init($i) $val
+	    lappend init_b($i) $elem
           }
         }
       }
@@ -192,7 +207,7 @@ while {$i_run < $num_runs} {
  
   # master transfers dF/dz and M from all replicas to SM dataspace
   if {[expr $replica_id == 0]} {
-    for {set i 0} {$i < $nr} {incr i} { 
+    for {set i 0} {$i < $nr} {incr i} {
        ListToArray_Data [SMDataSpace_image_g $smds $i] $image_g($i)
        ListToArray_Data [SMDataSpace_image_M $smds $i] $image_M($i)
        if { [expr ($i_run%$runs_per_frame) == 0] } {
@@ -201,14 +216,16 @@ while {$i_run < $num_runs} {
        }
     }
 
-    if { $SMPARAMS(evolve) } {
-      if { $SMPARAMS(climb) } {
+  #  if { $SMPARAMS(evolve) } {
+      if { $SMPARAMS(climb) && $i_run>1 } {
           # if requested, master alters the gradient at the climbing end of the string
-          SMDataSpace_climb $smds
+#     set SMPARAMS(stepsize) 0     
+           SMDataSpace_climb $smds
+     set SMPARAMS(stepsize) $SMPARAMS(stepsize)
       }
       # master moves all image z's
       SMDataSpace_MoveString $smds $SMPARAMS(stepsize)
-    }
+   # }
 
     # master retrieves the new z-positions from the SM dataspace and sends them to all replicas
     for {set i 0} {$i < $nr} {incr i} {
@@ -275,6 +292,28 @@ while {$i_run < $num_runs} {
       file delete $oldroot.$replica_id.xsc
     }
     set old_restart_root $restart_root
+
+    #Write restart restr files
+    if { $replica_id==0 } {
+    for {set i 0} {$i < $nr} {incr i} {
+      set restr_restart_root "$init_restr_file_root.restart$i_run"
+      set restart_restr [open [format "$restr_restart_root" $i] "w"]
+      set new_restr {} 
+      set nz_restart 0
+      foreach line $init_restr($i) {
+        lappend new_restr [string map "{[lindex $init_b($i) $nz_restart]} {b [lindex $image_z($i) $nz_restart]}" $line]
+        incr nz_restart
+      }
+      set restr_out [join $new_restr "\n"]
+      puts $restart_restr $restr_out
+      close $restart_restr
+      if [info exists old_restr_restart_root] {
+        set oldroot [format $old_restr_restart_root $i]
+        file delete $oldroot
+      }
+    }
+    set old_restr_restart_root $restr_restart_root
+    }
   }
 
 
