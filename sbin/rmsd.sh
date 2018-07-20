@@ -11,7 +11,8 @@
 #   - stringmethod.conf - string method configuration file used in the SMCV simulation
 #
 # (c) 2016-2018 Cameron F Abrams, Drexel University
-#
+# Updated 2018 Jasmine M Gardner, Drexel University
+# 
 # default values
 cv_inp=cv.inp
 string_method_history=output/0/alad_sm.job0.0.history
