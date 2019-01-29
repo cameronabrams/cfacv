@@ -1,6 +1,6 @@
-# tclforces file for CFACV
+# tclforces file for CFACV with Markovian Milestoning in Voronoi Tesselations
 # Cameron F Abrams
-# 2009-13
+# 2009-19
 
 # check for base directory name environment variable;
 # if not set, use default
@@ -35,10 +35,12 @@ set masses {}
 set nCntr [read_centersPDB $labelPDB serArray masses atnames numatoms]
 puts "CFACV) nCenters $nCntr  masses $masses numatoms $numatoms"
 
-puts "CFACV/MIL) Adding all atoms to TCL-forces request"
-for {set i 1} {$i <= $numatoms} {incr i} {
-    addatom $i
-}
+# I don't think this is necessary
+#puts "CFACV/MIL) Adding all atoms to TCL-forces request"
+#for {set i 1} {$i <= $numatoms} {incr i} {
+#    addatom $i
+#}
+
 # Set up the subdomains as "groups" for tclforces
 set groups {}
 for {set i 0} { $i < $nCntr } { incr i } {
@@ -62,7 +64,7 @@ if {!$nCV} {
     puts "CFACV) ERROR: Perhaps you need to use mk_tPDB.tcl to generate the cv.inp file?"
 }
 
-# read in the voronoi cell centers; 
+# read in the voronoi cell centers;
 # each center is an (nCV)-component vector (a location in CV-space)
 set vcList {}
 set nVC [read_vcs $voronoi_centers_file vcList $nCV]
@@ -73,7 +75,6 @@ if {![info exists seed]} {
     set seed [exec /bin/date +%N | sed s/^0/1/]
     puts "CFACV) setting seed to $seed"
 }
-
 
 # declare, allocate, and populate data space
 set ds [Tcl_NewDataSpace_mil $nCntr $cvList $vcList $home_cell $seed]
@@ -157,19 +158,19 @@ proc calcforces { } {
     global violationID
     global thisviolation_stepcount
     
-    setboundaryflag 0
-
     set step [getstep]
+
+    # initialize the PVRW flag for this step to OFF
+    setpvrwflag 0 $step
 
     # load COM coordinates of requested atom groups into associative array
     loadcoords p
     
-    # perform the update that detects whether we should reverse velocities
-
+    # perform the update that detects whether we should set the PVRW flag to ON
     set curr_cell [Tcl_UpdateDataSpace_mil $ds p $groups $first $step $home_cell]
     #print "CFACV/MIL) $step : curr_cell $curr_cell"
 
-    # if this is the first time-step, make sure the cv-pt is in the home cell
+    # if this is the first time-step, make sure the cv-point is in the home cell
     if {$first==1 && $curr_cell != $home_cell} {
 	print "CFACV/MIL) ERROR:  initial placement of cv-pt is not in home cell."
 	print "CFACV/MIL)         home_cell $home_cell curr_cell $curr_cell"
@@ -190,11 +191,9 @@ proc calcforces { } {
 	print "CFACV/MIL) $step : violation $violationID : stepcount $thisviolation_stepcount : revwt $reverse_postwaitsteps"
 	# only if enough steps have elapsed since last reversal...
 	if { ![expr $thisviolation_stepcount % $reverse_postwaitsteps]} {
-
 	    print "CFACV/MIL) $step : violation $violationID : stepcount-in-violation $thisviolation_stepcount : reversing all velocities."
-	    setboundaryflag 1
+            setpvrwflag 1 $step
 	    DataSpace_ReportCVs $ds $step
-	    
 	    # write a config if requested
 	    if {$write_config_at_hit} {
 		set fp [open "${outputname}_${home_cell}_${curr_cell}_${step}.xyz" "w"]
