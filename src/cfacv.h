@@ -16,7 +16,7 @@ typedef struct FORCEACCUMSTRUCT {
   int n; // number of entries accumulated
 } forceAccumStruct;
 
-enum {BOND, ANGLE, DIHED, CARTESIAN_X, CARTESIAN_Y, CARTESIAN_Z, NULL_CV};
+enum {BOND, ANGLE, DIHED, RGYR, CARTESIAN_X, CARTESIAN_Y, CARTESIAN_Z, NULL_CV};
 
 typedef struct CVSTRUCT {
   int typ;
@@ -129,6 +129,7 @@ typedef struct DATASPACESTRUCT {
   int iK;
   unsigned short * Xi;      // random number generator seed
   double ** R;              // [N][3] Cartesian positions of centers
+  double * mc;		    // [N] array of mass of centers	
   atomCenterStruct ** ac;   // [N] array of atom-group centers
   cvStruct ** cv;           // [M] array of CV's (location of system in CV space)
   metricTensorStruct * mt;  // metric tensor structure; implements MxM matrix

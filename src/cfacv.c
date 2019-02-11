@@ -18,7 +18,7 @@ FILE * my_binfopen ( char * name, char * code, unsigned int outputLevel, DataSpa
   return fp;
 }
 
-char * CVSTRINGS[NULL_CV] = {"BOND", "ANGLE", "DIHED", "CARTESIAN_X", "CARTESIAN_Y", "CARTESIAN_Z"};
+char * CVSTRINGS[NULL_CV] = {"BOND", "ANGLE", "DIHED", "RGYR", "CARTESIAN_X", "CARTESIAN_Y", "CARTESIAN_Z"};
 int cv_getityp ( char * typ ) {
   int i;
   for (i=0;i<NULL_CV&&strcmp(typ,CVSTRINGS[i]);i++);
@@ -413,6 +413,7 @@ DataSpace * NewDataSpace ( int N, int M, int K, long int seed ) {
   ds->oldz=(double*)malloc(K*sizeof(double));
   ds->f=(double*)malloc(K*sizeof(double));
   ds->MM=(double*)malloc(K*K*sizeof(double));
+  ds->mc=calloc(N,sizeof(double));
 
   /* metric tensor -- only use of K == M (one restraint per CV) */
   ds->mt=NULL;
@@ -504,6 +505,7 @@ int DataSpace_AddCenter_MassOnly ( DataSpace * ds, double m ) {
       ds->ac[i]->ind[0]=-1;
       ds->ac[i]->m[0]=m;
       ds->ac[i]->M=m;
+      ds->mc[i]=m;
     }
   }
 }
@@ -518,6 +520,7 @@ int DataSpace_AddAtomCenter ( DataSpace * ds, int n, int * ind, double * m ) {
 	ds->ac[i]->ind[j]=ind[j];
 	ds->ac[i]->m[j]=m[j];
 	ds->ac[i]->M+=m[j];
+	ds->mc[i]+=m[j];
       }
       return (ds->iN-1);
     }
@@ -653,6 +656,10 @@ int DataSpace_ComputeCVs ( DataSpace * ds ) {
 	  }
 	}
 #endif
+      }
+      else if (cvi->typ==RGYR) {
+//	      cvi->val=1;
+	cvi->val=my_getrgyr(ds->R, cvi->gr, cvi->nC, ds->mc, cvi->ind);
       }
       else if (cvi->typ==CARTESIAN_X) {
 	cvi->val=ds->R[cvi->ind[0]][0];

@@ -351,6 +351,7 @@ proc read_cvs { cv_file cv_list nMon } {
 		BOND -
 		ANGLE -
 		DIHED -
+		RGYR - 
 		CARTESIAN_X -
 		CARTESIAN_Y -
 		CARTESIAN_Z {
