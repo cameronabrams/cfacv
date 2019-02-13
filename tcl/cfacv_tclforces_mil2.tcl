@@ -8,11 +8,11 @@ if {[info exists env(CFACV_BASEDIR)]} {
     set CFACV_BASEDIR $env(CFACV_BASEDIR)
 } else {
     set HOME $env(HOME)
-    set CFACV_BASEDIR ${HOME}/cfacv
+    set CFACV_BASEDIR ${HOME}/research/cfacv-devel
 }
 
 # will die if CFACV_BASEDIR is invalid
-source ${CFACV_BASEDIR}/cfacv.tcl
+source ${CFACV_BASEDIR}/tcl/cfacv.tcl
 
 cfacv_banner NAMD
 
@@ -134,6 +134,8 @@ set violationID 0
 set last_cell $home_cell
 set thisviolation_stepcount 0
 
+
+set last_step 0
 # define the "calcforces" function which is called 
 # at each MD timestep
 proc calcforces { } {
@@ -157,13 +159,16 @@ proc calcforces { } {
     global die_on_sphere
     global violationID
     global thisviolation_stepcount
+
+    global last_step
     
     set step [getstep]
 
     # initialize the PVRW flag for this step to OFF
-    setpvrwflag 0 $step
+    setpvrwflag  $step 0
 
     # load COM coordinates of requested atom groups into associative array
+    
     loadcoords p
     
     # perform the update that detects whether we should set the PVRW flag to ON
@@ -190,9 +195,12 @@ proc calcforces { } {
 	}
 	print "CFACV/MIL) $step : violation $violationID : stepcount $thisviolation_stepcount : revwt $reverse_postwaitsteps"
 	# only if enough steps have elapsed since last reversal...
-	if { ![expr $thisviolation_stepcount % $reverse_postwaitsteps]} {
+	if { ![expr ($thisviolation_stepcount) % $reverse_postwaitsteps] && ($step-$last_step)>$reverse_postwaitsteps} {
+
 	    print "CFACV/MIL) $step : violation $violationID : stepcount-in-violation $thisviolation_stepcount : reversing all velocities."
-            setpvrwflag 1 $step
+            setpvrwflag  $step 1
+            set last_step $step
+            
 	    DataSpace_ReportCVs $ds $step
 	    # write a config if requested
 	    if {$write_config_at_hit} {
