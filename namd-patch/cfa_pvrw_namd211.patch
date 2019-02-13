@@ -268,23 +268,22 @@ diff -Naur src/NamdTypes.h src-modified/NamdTypes.h
    int migrationGroupSize;
    Real rigidBondLength;
  
-diff -Naur src/Sequencer.C src-modified/Sequencer.C
---- src/Sequencer.C	2015-03-03 12:54:14.000000000 -0500
-+++ src-modified/Sequencer.C	2016-08-02 16:39:29.896782380 -0400
+--- /home/gourav/softwares/NAMD_2.11_Source/src/Sequencer.C	2015-03-03 12:54:14.000000000 -0500
++++ src/Sequencer.C	2019-02-08 15:13:29.427563429 -0500
 @@ -256,6 +256,12 @@
  
      const int reassignFreq = simParams->reassignFreq;
  
 +#ifdef CFA_PVRW
 +    // declare the flag for checking for request to rewind velocities/positions
-+    // assume it is 0
++    // assume it is 0 at the first step
 +    int doPosVelRewind = 0;
 +#endif
 +
    if ( scriptTask == SCRIPT_RUN ) {
  
  //    printf("Doing initial rattle\n");
-@@ -323,6 +329,11 @@
+@@ -323,10 +329,22 @@
  
      for ( ++step; step <= numberOfSteps; ++step )
      {
@@ -292,11 +291,22 @@ diff -Naur src/Sequencer.C src-modified/Sequencer.C
 +      //      fprintf(stdout,"PVRW: begin step %i with state %i\n",step,doPosVelRewind);fflush(stdout);
 +      if (!doPosVelRewind) {
 +        saveOldPosVel();
++      }else {
++	//	fprintf(stdout,"PVRW: restoring\n");fflush(stdout);
++	restoreOldPosVel();
++      }     
 +#endif
        rescaleVelocities(step);
        tcoupleVelocities(timestep,step);
        berendsenPressure(step);
-@@ -347,12 +358,26 @@
+ 
++#ifdef CFA_PVRW
++      if ( !doPosVelRewind )
++#endif
+       if ( ! commOnly ) {
+         addForceToMomentum(0.5*timestep);
+         if (staleForces || doNonbonded)
+@@ -347,12 +365,25 @@
           } */
  
        maximumMove(timestep);
@@ -311,10 +321,9 @@ diff -Naur src/Sequencer.C src-modified/Sequencer.C
 +#endif
        if ( simParams->langevinOn && simParams->langevin_useBAOAB ) langevinVelocities(timestep);
  
-+#ifdef CFA_PVRW
++/*#ifdef CFA_PVRW
 +      if ( !doPosVelRewind ) 
-+#endif
-+
++#endif*/
        langevinPiston(step);
 +
 +#ifdef CFA_PVRW
@@ -323,7 +332,7 @@ diff -Naur src/Sequencer.C src-modified/Sequencer.C
        if ( ! commOnly ) addVelocityToPosition(0.5*timestep);
  
        // impose hard wall potential for Drude bond length
-@@ -363,6 +388,9 @@
+@@ -363,6 +394,9 @@
        doNonbonded = !(step%nonbondedFrequency);
        doFullElectrostatics = (dofull && !(step%fullElectFrequency));
  
@@ -333,32 +342,22 @@ diff -Naur src/Sequencer.C src-modified/Sequencer.C
        if ( zeroMomentum && doFullElectrostatics )
          correctMomentum(step,slowstep);
  
-@@ -382,8 +410,23 @@
+@@ -382,8 +416,13 @@
        doEnergy = ! ( step % energyFrequency );
        if ( accelMDOn && !accelMDdihe ) doEnergy=1;
        if ( adaptTempOn ) doEnergy=1; 
 +
 +#ifdef CFA_PVRW
-+      } else {
-+	//	fprintf(stdout,"PVRW: restoring\n");fflush(stdout);
-+	restoreOldPosVel();
-+      }
 +      runComputeObjects(doPosVelRewind || !(step%stepsPerCycle),step<numberOfSteps);
 +#else
        runComputeObjects(!(step%stepsPerCycle),step<numberOfSteps);
 - 
 +#endif
-+
-+#ifdef CFA_PVRW
-+      if (doTcl) {
-+	doPosVelRewind = broadcast->doPVRW.get(step);
-+      }
-+#endif
 +      
        rescaleaccelMD(step, doNonbonded, doFullElectrostatics); // for accelMD
       
        if ( staleForces || doTcl || doColvars ) {
-@@ -392,6 +435,9 @@
+@@ -392,6 +431,9 @@
        }
  
        // reassignment based on full-step velocities
@@ -368,7 +367,7 @@ diff -Naur src/Sequencer.C src-modified/Sequencer.C
        if ( !commOnly && ( reassignFreq>0 ) && ! (step%reassignFreq) ) {
          reassignVelocities(timestep,step);
          addForceToMomentum(-0.5*timestep);
-@@ -402,6 +448,9 @@
+@@ -402,6 +444,9 @@
          rattle1(-timestep,0);
        }
  
@@ -378,7 +377,7 @@ diff -Naur src/Sequencer.C src-modified/Sequencer.C
        if ( ! commOnly ) {
          langevinVelocitiesBBK1(timestep);
          addForceToMomentum(timestep);
-@@ -415,7 +464,13 @@
+@@ -415,7 +460,13 @@
        }
  
        // add drag to each atom's positions
@@ -392,7 +391,7 @@ diff -Naur src/Sequencer.C src-modified/Sequencer.C
        if ( ! commOnly && rotDragOn ) addRotDragToPosition(timestep);
  
        rattle1(timestep,1);
-@@ -424,7 +479,10 @@
+@@ -424,7 +475,10 @@
  
        submitHalfstep(step);
        if ( zeroMomentum && doFullElectrostatics ) submitMomentum(step);
@@ -404,7 +403,19 @@ diff -Naur src/Sequencer.C src-modified/Sequencer.C
        if ( ! commOnly ) {
          addForceToMomentum(-0.5*timestep);
          if (staleForces || doNonbonded)
-@@ -1311,6 +1369,46 @@
+@@ -435,6 +489,11 @@
+ 
+ 	// rattle2(timestep,step);
+ 
++#ifdef CFA_PVRW
++      if (doTcl) {
++	doPosVelRewind = broadcast->doPVRW.get(step);
++      }
++#endif
+ 	submitReductions(step);
+ 	submitCollections(step);
+        //Update adaptive tempering temperature
+@@ -1311,6 +1370,46 @@
    patch->addVelocityToPosition(dt);
  }
  
@@ -451,6 +462,7 @@ diff -Naur src/Sequencer.C src-modified/Sequencer.C
  void Sequencer::hardWallDrude(BigReal dt, int pressure)
  {
    if ( simParams->drudeHardWallOn ) {
+
 diff -Naur src/Sequencer.h src-modified/Sequencer.h
 --- src/Sequencer.h	2013-10-30 14:26:16.000000000 -0400
 +++ src-modified/Sequencer.h	2016-07-13 10:10:49.818296291 -0400
