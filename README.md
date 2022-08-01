@@ -58,14 +58,21 @@ cfacv is used to simply restrain at a particular (phi,psi).
 
 ### INSTRUCTIONS FOR INSTALLING CFACV
 
+Prerequisites:
+
+1. swig and tcl headers and libraries
+
+2. Gnu Scientific Library
+
+To compile:
+
 1. copy the cfacv/ directory wholesale under your home directory
 
 2. cd ~/cfacv ; mkdir lib bin (if you haven't already)
 
 3. cd src; make all
 
-
-That's it!  Note that you need to have the Gnu Scientific Library and Headers installed; that is, the `gsl` and `gsl-devel` packages.
+Note that this uses ``swig`` to build a shared-object library that the TcL interpreter in NAMD will load.  For this reason, it is a good idea if the TcL version that ``swig`` uses matches the TcL version that is "inside" NAMD.  If there is a mismatch, a good way to fix it is to compile NAMD from source using the system TcL header and libraries rather than the TcL the NAMD compilation instructions suggest.
 
 In any run directory where you want to use `cfacv`, make sure the
    NAMD configuration file references the right path for `cfacv_tclforces.tcl`

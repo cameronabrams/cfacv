@@ -535,7 +535,7 @@ int generate_dxmap ( bCntr * bsc, int nC, int D, double S, char * fn, int * per,
 
   fprintf(fp,"\n");
   fprintf(fp,"object \"free energy reconstruction (kcal/mol)\" class field\n");
-  close(fp);
+  fclose(fp);
   free(A);
 
 

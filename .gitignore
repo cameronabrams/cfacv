@@ -10,3 +10,4 @@ bin/
 ref_md/
 *-working*/
 output.*tgz
+.vscode/
