@@ -38,7 +38,7 @@ In this release (v1.0), there are three subdirectories, summarized below:
 
      Note that you must have swig installed.
  
-2. Run the example (This is a system with HIV-1 MA (PDB 2hiw))
+2. Run the example (This is a system with HIV-1 MA (PDB 1hiw))
 
    * cd into examples/hiv1-ma
    * examine mk_tPDB.tcl; you can edit parts of this  
