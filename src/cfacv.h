@@ -6,6 +6,7 @@
 #include <stdlib.h>
 #include <stdio.h>
 #include <math.h>
+#include <string.h>  /* strcmp, used in cfacv.c */
 
 #include "measurements.h"
 #include "centers.h"
