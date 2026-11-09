@@ -918,7 +918,8 @@ int DataSpace_VoronoiCellCheck ( DataSpace * ds, int home_cell ) {
     cvStruct * cv;
     double * this_vc;
     double min_d2=1.e69;
-    int min_i;
+    int min_i=-1; /* -1 is this function's own 'outside the tesselation'
+                     sentinel; without it, zero restraints returns garbage */
     double this_d, this_d2;
     //printf("CFACV/C) whichCell begins.\n");
 

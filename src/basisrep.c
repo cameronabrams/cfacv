@@ -19,6 +19,7 @@ int sscanf_stringList ( char * str, char ** slist, int n ) {
     while (p=next_word(p)) sscanf(p,"%s",slist[i++]);
     return !(i==n);
   }
+  return 1; /* no string is not a successful parse of n fields */
 }
 
 int sscanf_doubleList ( char * str, double * dlist, int n ) {
@@ -29,6 +30,7 @@ int sscanf_doubleList ( char * str, double * dlist, int n ) {
     while (p=next_word(p)) sscanf(p,"%lf",&dlist[i++]);
     return !(i==n);
   }
+  return 1; /* no string is not a successful parse of n fields */
 }
 
 lRecon * lRecon_new ( int D ) {
