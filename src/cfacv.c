@@ -103,7 +103,7 @@ void DataSpace_metricTensor_fprintf ( DataSpace * ds, FILE * fp ) {
     fprintf(fp,"CFACV/C) Metric tensor: %i non-zero elements (%i off-diagonals)\n",mt->nn,mt->nn-ds->M);
     fprintf(fp,"         [linear-index]  [cva  cvb]  (value (1/amu)) (#-common-centers) : list-of-center-pair-indices [global-ctr-index:(cva-i,cvb-i)]\n");
     for (k=0;k<mt->nn;k++) {
-      fprintf(fp,"    [%i]  [%i %i] : (%.5le) : (%i) : ",k,mt->cva[k],mt->cvb[k],mt->nca[k],mt->MM[mt->cva[k]*mt->m+mt->cvb[k]]);
+      fprintf(fp,"    [%i]  [%i %i] : (%.5le) : (%i) : ",k,mt->cva[k],mt->cvb[k],mt->MM[mt->cva[k]*mt->m+mt->cvb[k]],mt->nca[k]);
       for (l=0;l<mt->nca[k];l++) fprintf(fp,"[%i:(%i,%i)]",mt->ca[k][l].a,mt->ca[k][l].i,mt->ca[k][l].j);
       fprintf(fp,"\n");
     }

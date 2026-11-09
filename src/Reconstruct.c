@@ -490,7 +490,7 @@ int generate_dxmap ( bCntr * bsc, int nC, int D, double S, char * fn, int * per,
   isp[2]=(int)(sp[2]/delta)+1;
   nGrid=isp[0]*isp[1]*isp[2];
 
-  fprintf(stdout,"# map generation on a %i x %i x %i grid (%u bytes)\n",isp[0],isp[1],isp[2],nGrid*sizeof(double));
+  fprintf(stdout,"# map generation on a %i x %i x %i grid (%zu bytes)\n",isp[0],isp[1],isp[2],(size_t)nGrid*sizeof(double));
 
   A=malloc(nGrid*sizeof(double));
 
