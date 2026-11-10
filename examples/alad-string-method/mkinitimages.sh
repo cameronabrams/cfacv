@@ -24,9 +24,8 @@ INITX="initX.conf"
 # plain restrained-MD warmups, one system at a time and no replicas, so the
 # single-node build is the right one and charmrun is not involved.
 #
-# On picotte:
-#     module purge
-#     module load abramsGrp-namd/3.0.3/multicore-gcc
+# With namd3 on PATH:
+#
 #     ./mkinitimages.sh --num-procs=8
 #
 CFACV_BASEDIR=$(cd "$(dirname "${BASH_SOURCE[0]}")/../.." && pwd)

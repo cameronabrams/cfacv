@@ -12,12 +12,12 @@ ref_md/
 output.*tgz
 .vscode/
 
-# --- added 2026-11-09 ---
 # binaries the makefile leaves in src/ before copying them to bin/
 src/ForcesFromLog
 src/Reconstruct
 src/FEPFromForces
 # make PROFILE=1
 gmon.out
-# backup of the pre-2026-11 makefile, kept locally
+
+# local backup of a pre-rework makefile
 src/makefile.orig

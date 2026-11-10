@@ -8,10 +8,11 @@
 # of hardcoded paths on the original author's workstation, and to launch the
 # NAMD 3 MPI build, which is what provides +replicas across nodes.
 #
-# On picotte:
-#     module purge
-#     module load abramsGrp-namd/3.0.3/mpi-gcc
-#     ./runstring.sh --num-procs=$SLURM_NTASKS
+# Needs an MPI (or other multi-partition) NAMD build: a multicore build
+# refuses +replicas with "+partitions other than 1 is not allowed for
+# multicore build".  With namd3 and mpirun on PATH:
+#
+#     ./runstring.sh --num-procs=<total ranks>
 #
 # NAMD's +replicas requires the total process count to be an exact multiple
 # of the replica count; this script checks that before launching.
