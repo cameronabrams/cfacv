@@ -98,7 +98,7 @@ if [ -z "$NAMD_CMD" ]; then
 fi
 if ! command -v ${NAMD_CMD%% *} >/dev/null; then
    echo "ERROR: '${NAMD_CMD%% *}' not on PATH."
-   echo "       module load abramsGrp-namd/3.0.3/multicore-gcc"
+   echo "       Load your NAMD module, or pass --namd3-command=/path/to/namd3."
    exit 1
 fi
 echo "mkinitimages.sh: cfacv $CFACV_BASEDIR"

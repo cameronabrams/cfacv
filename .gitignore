@@ -21,3 +21,7 @@ gmon.out
 
 # local backup of a pre-rework makefile
 src/makefile.orig
+
+# python bytecode
+__pycache__/
+*.pyc

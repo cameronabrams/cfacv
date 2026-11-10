@@ -50,7 +50,7 @@ for f in "$CONF" "$STRING_METHOD_CONFIG"; do
   [ -f "$f" ] || { echo "ERROR: file $f not found." >&2; exit 1; }
 done
 [ -d "$CFACV_BASEDIR/tcl" ] || { echo "ERROR: $CFACV_BASEDIR is not a cfacv tree." >&2; exit 1; }
-command -v "$NAMD3"  >/dev/null || { echo "ERROR: '$NAMD3' not on PATH. module load abramsGrp-namd/3.0.3/mpi-gcc" >&2; exit 1; }
+command -v "$NAMD3"  >/dev/null || { echo "ERROR: '$NAMD3' not on PATH. Load an MPI NAMD build, or pass --namd3-command=." >&2; exit 1; }
 command -v "$MPIRUN" >/dev/null || { echo "ERROR: '$MPIRUN' not on PATH." >&2; exit 1; }
 
 # replica count comes from the string-method config unless overridden
