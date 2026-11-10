@@ -29,7 +29,20 @@ module purge
 module load abramsGrp-namd/3.0.3/mpi-gcc
 
 SRC=$SLURM_SUBMIT_DIR
-CFACV_BASEDIR=$(cd "$SRC/../.." && pwd)
+
+# Where the cfacv tree lives.  Submitting from inside the repository makes
+# $SRC/../.. correct, but the example is usually staged into a work area, so
+# pass it in explicitly:
+#     sbatch --export=ALL,CFACV_BASEDIR=/ifs/groups/abramsGrp/$USER/cfacv \
+#            picotte_string.sbatch
+if [ -z "${CFACV_BASEDIR:-}" ]; then
+  CFACV_BASEDIR=$(cd "$SRC/../.." && pwd)
+fi
+if [ ! -d "$CFACV_BASEDIR/tcl" ]; then
+  echo "ERROR: CFACV_BASEDIR='$CFACV_BASEDIR' is not a cfacv tree." >&2
+  exit 1
+fi
+
 WORK=/scratch/$USER/$SLURM_JOB_ID
 
 # MPI launches must work on a persistent filesystem: $TMPDIR and
