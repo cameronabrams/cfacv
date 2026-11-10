@@ -32,7 +32,7 @@ wrapall on
 
 # CFACV parameters
 tclforces                       on
-tclforcesscript                 $env(HOME)/research/cfacv/tcl/cfacv_tclforces_stringmethod.tcl
+tclforcesscript                 $CFACV_BASEDIR/tcl/cfacv_tclforces_stringmethod.tcl
 set labelPDB                    label.pdb
 set cvINP                       cv.inp
 set restrPARAMS                 {{k 100}} ; # spring constant

@@ -83,9 +83,15 @@ outputname [format $job_output_root.$replica_id $replica_id]
 outputEnergies $outputEnergiesEvery
 dcdFreq [expr $steps_per_run * $runs_per_frame]
 
-#set SMPARAMS(nu) 0.0
-#****GS******
-set SMPARAMS(nu) $SMPARAMS(nu)
+# Climbing-image strength; 0.0 disables climbing (see below).  A config file
+# may set SMPARAMS(nu) before this script is sourced; if it does not, default
+# it here.  Upstream e2bf1b0 (2018-07-20) replaced this default with the
+# self-assignment "set SMPARAMS(nu) $SMPARAMS(nu)", which aborts on a missing
+# array element for every config that does not set nu -- including the
+# alad-string-method example shipped in this repository.
+if {![info exists SMPARAMS(nu)]} {
+  set SMPARAMS(nu) 0.0
+}
 
 source $namd_config_file
 
