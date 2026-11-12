@@ -1,0 +1,53 @@
+# Build CFACV and check its collective variables, without NAMD.
+#
+# NAMD itself is not available here (its download requires registration), so
+# this checks the part of CFACV that is ours: that the C library and its SWIG
+# Tcl bindings build on current compilers, load into a Tcl interpreter, and
+# compute CV values and restraining forces correctly (tests/cv_values.tcl).
+# A full TAMD run under NAMD remains a manual check.
+name: tests
+
+on:
+  # Pushes to main, plus every pull request; a push to a PR branch is covered
+  # by its pull_request run, so it is not built twice.
+  push:
+    branches: [main]
+  pull_request:
+  workflow_dispatch:
+
+jobs:
+  build-and-test:
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          # gcc 11: an older toolchain still in wide use on clusters
+          - os: ubuntu-22.04
+            cc: gcc
+          # gcc 14: implicit function declarations are errors from here on,
+          # which is what broke the build before v1.1.0
+          - os: ubuntu-24.04
+            cc: gcc-14
+    runs-on: ${{ matrix.os }}
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Install build dependencies
+        run: |
+          sudo apt-get update -qq
+          sudo apt-get install -y -qq swig tcl-dev tcl libgsl-dev ${{ matrix.cc }}
+
+      - name: Configure
+        working-directory: src
+        run: make config CC=${{ matrix.cc }}
+
+      - name: Build everything
+        working-directory: src
+        run: make all CC=${{ matrix.cc }}
+
+      - name: Both libraries load into tclsh
+        run: |
+          echo 'load lib/cfacv.so cfa_cvlibc; load lib/genericdataspace.so genericdataspace; puts "loaded"' | tclsh
+
+      - name: CV values and forces
+        run: tclsh tests/cv_values.tcl
