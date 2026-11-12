@@ -28,7 +28,10 @@ INITX="initX.conf"
 #
 #     ./mkinitimages.sh --num-procs=8
 #
-CFACV_BASEDIR=$(cd "$(dirname "${BASH_SOURCE[0]}")/../.." && pwd)
+# An exported CFACV_BASEDIR wins; otherwise assume the example sits in a
+# checkout. (The fallback must not fail under set -e: the "not a cfacv tree"
+# check below reports a bad path with a message.)
+CFACV_BASEDIR=${CFACV_BASEDIR:-$(cd "$(dirname "${BASH_SOURCE[0]}")/../.." 2>/dev/null && pwd || true)}
 NAMD3=namd3
 NAMD_CMD=""      # full launcher; default is "$NAMD3 +p$NP"
 NP=16

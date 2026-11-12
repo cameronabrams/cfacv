@@ -23,6 +23,9 @@ Releases are made as needed (see `RELEASING.md`). Add an entry under
   `scripts/check.sh` now run every test in `tests/`.
 
 ### Fixed
+- The string-method example's `runstring.sh` and `mkinitimages.sh` overwrote
+  an exported `CFACV_BASEDIR`, so the example failed when staged outside a
+  checkout (as on a cluster's scratch space). They now use it when set.
 - String-method reparameterization assigned pointers where it meant to copy
   values, so after the first pass every reparameterization interpolated in
   place, reading images it had already moved. The resulting string was
