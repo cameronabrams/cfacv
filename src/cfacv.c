@@ -1404,8 +1404,10 @@ int SMDataSpace_reparameterize ( SMDataSpace * sm ) {
       }
     }
 
-    for (i=0;i<ni;i++) sm->z[i]=sm->zn[i];
-    if (sm->dual) for (i=ni;i<sm->ni;i++) sm->z[i]=sm->zn[i]=sm->z[i-ni];
+    /* copy, never alias: if z[i] and zn[i] became the same buffer, every later
+       pass would interpolate in place, reading images it had already moved */
+    for (i=0;i<ni;i++) sm_cop(sm->z[i],sm->zn[i],nz);
+    if (sm->dual) for (i=ni;i<sm->ni;i++) sm_cop(sm->z[i],sm->z[i-ni],nz);
  
     /* check the convergence of the reparameterization */
     err=0.0;
@@ -1422,7 +1424,8 @@ int SMDataSpace_reparameterize ( SMDataSpace * sm ) {
       if (no_iter) no_iter=0;
       iter++;
     }
-    if (iter==sm->reparam_maxiter) {
+    /* converging on the last allowed iteration is still converging */
+    if (err > sm->reparam_tol) {
       fprintf(stderr,"ERROR: string reparameterization did not converge after %i iterations (%.5le > %.5le)\n",iter,err,sm->reparam_tol);
       exit(1);
     }
