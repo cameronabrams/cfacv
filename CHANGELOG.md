@@ -4,7 +4,7 @@ All notable changes to CFACV are recorded here. The format follows
 [Keep a Changelog](https://keepachangelog.com/en/1.1.0/), and versions follow
 [Semantic Versioning](https://semver.org/).
 
-Releases are checked for quarterly (see `RELEASING.md`). Add an entry under
+Releases are made as needed (see `RELEASING.md`). Add an entry under
 `[Unreleased]` in the same pull request as the change it describes.
 
 ## [Unreleased]
@@ -35,6 +35,8 @@ Releases are checked for quarterly (see `RELEASING.md`). Add an entry under
   and restraining forces without NAMD (#5).
 - An MIT license, a `CITATION.cff`, this changelog, and release tooling
   (`scripts/release.sh`).
+- The README is rewritten for the current tree: installation with the new
+  makefile, NAMD 3 and Tcl, a table of CV types, and what each directory holds.
 
 ## [1.0.1] - 2016-03-04
 
