@@ -114,7 +114,7 @@ where ![z_sup_i_of_t](README_images/z_sup_i_of_t.png) is the instaneous location
 
 `../../sbin/measurermsd.sh`
 
-This will assume that the name of the string method config file is **alad_stringmethod.conf** unless you specify another one using the "-smc" switch.  It will also assume the history file is **output/0/alad_sm.job0.0.history** unless you specify another one with the "-smh" switch.  It will also read the **cv.inp** file to determine the dimensionality of CV space.  It will generate an output file **rmsd.dat** in which each line has the frame number and the RMSD at that point in time, relative to the latest string.
+This will assume that the name of the string method config file is **alad_stringmethod.conf** unless you specify another one using the "-smc" switch.  It reads the history files **output/0/alad_sm.job\*.0.history** (the run and any restarts, in order) unless you name others, with the "-smh" switch or as arguments.  It also reads the **cv.inp** file to determine the dimensionality of CV space.  It generates an output file **rmsd.dat** in which each line has the iteration number and the RMSD at that point, relative to the latest string (or, with "-nA N", to the average of the last N frames).  It needs only bash and awk.
 The bash script **rmsd.sh** will produce a plot of the rmsd vs iteration number that looks like this:
 
  ![rmsd](README_images/rmsd-crop.png)

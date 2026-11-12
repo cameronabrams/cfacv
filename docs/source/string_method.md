@@ -107,3 +107,10 @@ image's gradient, metric tensor, and reparameterized position. Every
 `frames_per_restart` frames, every replica writes NAMD restart files and
 replica 0 writes a restart script and updated per-image restraint files;
 `job1.conf` in the example shows how to continue from them.
+
+To monitor convergence, run `sbin/measurermsd.sh` in the run directory. It
+reads the history files and writes `rmsd.dat`: for each frame, the RMSD of the
+string from the latest string,
+$\sqrt{\tfrac{1}{R}\sum_i |z^i - z^i_{\mathrm{ref}}|^2}$. The string has
+converged when this stops falling. `-nA N` uses the average of the last `N`
+frames as the reference; `-h` lists the other options.
