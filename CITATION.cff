@@ -14,7 +14,7 @@ authors:
     given-names: Gourav
   - family-names: Gyasi
     given-names: Prince
-version: 1.1.0
+version: 1.1.1
 date-released: 2026-11-12
 license: MIT
 repository-code: https://github.com/cameronabrams/cfacv

@@ -9,6 +9,8 @@ Releases are made as needed (see `RELEASING.md`). Add an entry under
 
 ## [Unreleased]
 
+## [1.1.1] - 2026-11-12
+
 ### Added
 - Documentation at <https://cfacv.readthedocs.io>: installation, NAMD
   configuration variables, CV types, restraint options, output, the TAMD
