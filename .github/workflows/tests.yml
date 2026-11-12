@@ -14,6 +14,8 @@ on:
     branches: [main]
   pull_request:
   workflow_dispatch:
+  # release.yml runs this same workflow as its gate on a tagged commit
+  workflow_call:
 
 jobs:
   build-and-test:

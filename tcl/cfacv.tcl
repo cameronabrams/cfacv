@@ -5,7 +5,10 @@
 # a Tcl script that uses this library must set the value
 # of CFACV_BASEDIR correctly.
 #
-set CFACV_VERSION 1.00
+# the release version lives in one place, the top-level VERSION file
+if {[catch {set fp [open ${CFACV_BASEDIR}/VERSION r]; set CFACV_VERSION [string trim [read $fp]]; close $fp}]} {
+    set CFACV_VERSION unknown
+}
 
 load ${CFACV_BASEDIR}/lib/cfacv.so cfa_cvlibc
 

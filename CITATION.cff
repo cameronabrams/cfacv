@@ -1,0 +1,35 @@
+cff-version: 1.2.0
+message: >-
+  If you use CFACV, please cite the software and the paper that introduced
+  temperature-accelerated molecular dynamics.
+title: "CFACV: a collective variables implementation for NAMD"
+type: software
+authors:
+  - family-names: Abrams
+    given-names: Cameron F.
+    affiliation: Drexel University
+version: 1.0.1
+date-released: 2016-03-04
+license: MIT
+repository-code: https://github.com/cameronabrams/cfacv
+keywords:
+  - molecular dynamics
+  - NAMD
+  - collective variables
+  - temperature-accelerated molecular dynamics
+preferred-citation:
+  type: article
+  authors:
+    - family-names: Abrams
+      given-names: Cameron F.
+    - family-names: Vanden-Eijnden
+      given-names: Eric
+  title: >-
+    Large-scale conformational sampling of proteins using
+    temperature-accelerated molecular dynamics
+  journal: Proceedings of the National Academy of Sciences of the USA
+  volume: 107
+  start: 4961
+  end: 4966
+  year: 2010
+  doi: 10.1073/pnas.0914540107

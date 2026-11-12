@@ -1,0 +1,49 @@
+# Create a GitHub Release when scripts/release.sh pushes a v* tag.
+#
+# Zenodo archives every GitHub Release of this repository and mints a DOI for
+# it, so this workflow is what makes a version citable. It refuses to publish
+# a tag whose build or tests fail, or whose VERSION file disagrees with it.
+name: release
+
+on:
+  push:
+    tags: ["v*"]
+
+permissions:
+  contents: write        # required to create the release
+
+jobs:
+  tests:
+    # the same build-and-test matrix every pull request runs
+    uses: ./.github/workflows/tests.yml
+
+  publish:
+    needs: tests
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: The tag must match VERSION
+        # A tag that disagrees with the version the code reports is worse than
+        # no tag: every later "which version is this?" gets a confident wrong
+        # answer, and Zenodo would archive it.
+        run: |
+          TAG="${GITHUB_REF_NAME#v}"
+          HAVE="$(cat VERSION)"
+          echo "tag=$TAG  VERSION=$HAVE"
+          test "$TAG" = "$HAVE"
+
+      - name: Extract the notes for this version
+        run: |
+          scripts/changelog_notes.sh "$GITHUB_REF_NAME" > NOTES.md
+          test -s NOTES.md
+          echo "--- notes ---"; cat NOTES.md
+
+      - name: Create the release
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          gh release create "$GITHUB_REF_NAME" \
+            --title "CFACV $GITHUB_REF_NAME" \
+            --notes-file NOTES.md \
+            --verify-tag
