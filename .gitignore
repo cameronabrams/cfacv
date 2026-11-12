@@ -25,3 +25,6 @@ src/makefile.orig
 # python bytecode
 __pycache__/
 *.pyc
+
+# sphinx output
+docs/build/
