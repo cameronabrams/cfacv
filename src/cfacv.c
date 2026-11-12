@@ -3,7 +3,7 @@
 //#define _PARANOIA_ 1
 
 void cfacvBanner ( void ) {
-  printf("CFACV/C) Version %.2f\n",CFACVC_VERSION);
+  printf("CFACV/C) Version %s\n",CFACV_VERSION);
 }
 
 FILE * my_fopen ( char * name, char * code ) {

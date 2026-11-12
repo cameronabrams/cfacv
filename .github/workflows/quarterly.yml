@@ -1,0 +1,46 @@
+# Quarterly release check.
+#
+# On the first of January, April, July and October, open an issue if
+# CHANGELOG.md has unreleased entries. When there is nothing pending, do
+# nothing: a mature code should not publish empty versions to keep a schedule.
+name: quarterly release check
+
+on:
+  schedule:
+    - cron: "0 14 1 1,4,7,10 *"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+  issues: write
+
+jobs:
+  check:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Open an issue if there are unreleased changes
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          NOTES="$(scripts/changelog_notes.sh Unreleased || true)"
+          if [ -z "$(printf '%s' "$NOTES" | tr -d '[:space:]')" ]; then
+            echo "Nothing under [Unreleased]; no release due."
+            exit 0
+          fi
+          TITLE="Quarterly release check: $(date +%Y)-Q$(( ($(date +%-m) - 1) / 3 + 1 ))"
+          if gh issue list --state open --search "in:title \"$TITLE\"" --json number --jq 'length' | grep -qv '^0$'; then
+            echo "An open issue titled '$TITLE' already exists."
+            exit 0
+          fi
+          {
+            echo "CHANGELOG.md has unreleased changes. To release, from an up-to-date main:"
+            echo
+            echo '    scripts/release.sh <version>'
+            echo
+            echo "Pending:"
+            echo
+            printf '%s\n' "$NOTES"
+          } > body.md
+          gh issue create --title "$TITLE" --body-file body.md

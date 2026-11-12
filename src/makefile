@@ -72,7 +72,11 @@ ifeq ($(strip $(SWIG)),)
 endif
 
 # ---- assembled flags ------------------------------------------------------
-CFLAGS  += $(OPT) $(WARN) -I$(TCL_INC) $(GSL_CFLAGS)
+# ---- version --------------------------------------------------------------
+# one source of truth, also read by tcl/cfacv.tcl and set by scripts/release.sh
+CFACV_VERSION := $(strip $(shell cat ../VERSION 2>/dev/null || echo unknown))
+
+CFLAGS  += $(OPT) $(WARN) -I$(TCL_INC) $(GSL_CFLAGS) -DCFACV_VERSION='"$(CFACV_VERSION)"'
 LIBS    += -lm
 LDFLAGS += $(LDEXTRA)
 USER_FLAGS ?=
@@ -84,6 +88,7 @@ SSOBJ += basisrep.o
 all: cfacv.so genericdataspace.so ForcesFromLog Reconstruct FEPFromForces
 
 config:
+	@echo "VERSION  = $(CFACV_VERSION)"
 	@echo "CC       = $(CC)"
 	@echo "OPT      = $(OPT)"
 	@echo "TCL_INC  = $(TCL_INC)"
@@ -123,7 +128,7 @@ FEPFromForces: FEPFromForces.c | ../bin
 # ---- header dependencies --------------------------------------------------
 measurements.o : measurements.h
 centers.o      : centers.h
-cfacv.o        : cfacv.h measurements.h centers.h wrapcoords.h
+cfacv.o        : cfacv.h measurements.h centers.h wrapcoords.h ../VERSION
 Reconstruct.o  : basisrep.h
 basisrep.o     : basisrep.h
 

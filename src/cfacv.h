@@ -1,7 +1,10 @@
 #ifndef _CFACV_H_
 #define _CFACV_H_
 
-#define CFACVC_VERSION 0.10
+/* the release version, from the top-level VERSION file via the makefile */
+#ifndef CFACV_VERSION
+#define CFACV_VERSION "unknown"
+#endif
 
 #include <stdlib.h>
 #include <stdio.h>
