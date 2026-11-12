@@ -8,7 +8,10 @@
 name: tests
 
 on:
+  # Pushes to main, plus every pull request; a push to a PR branch is covered
+  # by its pull_request run, so it is not built twice.
   push:
+    branches: [main]
   pull_request:
   workflow_dispatch:
 
