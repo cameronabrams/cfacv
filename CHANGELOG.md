@@ -9,6 +9,12 @@ Releases are made as needed (see `RELEASING.md`). Add an entry under
 
 ## [Unreleased]
 
+### Fixed
+- `make config` no longer reports GSL as if found when it is not; it says
+  whether GSL was found, and where.
+- The README named the second library `libgenericdataspace.so`; the build
+  makes, and `tcl/genericdataspace.tcl` loads, `genericdataspace.so`.
+
 ## [1.1.0] - 2026-11-12
 
 ### Fixed

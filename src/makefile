@@ -61,8 +61,14 @@ else ifneq ($(wildcard $(CONDA_PREFIX)/include/gsl),)
   GSL_CFLAGS := -I$(CONDA_PREFIX)/include
   GSL        := -L$(CONDA_PREFIX)/lib -Wl,-rpath,$(CONDA_PREFIX)/lib -lgsl -lgslcblas
 else
+  # no gsl-config, GSL_PREFIX or conda GSL: try the compiler's default paths
   GSL_CFLAGS :=
   GSL        := -lgsl -lgslcblas
+  ifeq ($(wildcard /usr/include/gsl/gsl_linalg.h),)
+    GSL_NOTE := (not found; only Reconstruct and FEPFromForces need it -- pass GSL_PREFIX=)
+  else
+    GSL_NOTE := (default system paths)
+  endif
 endif
 
 # ---- swig -----------------------------------------------------------------
@@ -93,7 +99,7 @@ config:
 	@echo "OPT      = $(OPT)"
 	@echo "TCL_INC  = $(TCL_INC)"
 	@echo "SWIG     = $(SWIG)"
-	@echo "GSL      = $(GSL)"
+	@echo "GSL      = $(GSL) $(GSL_NOTE)"
 	@echo "CFLAGS   = $(CFLAGS)"
 
 ../lib ../bin:

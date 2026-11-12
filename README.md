@@ -43,7 +43,7 @@ The makefile finds Tcl, GSL and swig itself. If it picks the wrong one, or
 none, override it: `make all TCL_INC=/dir/with/tcl.h GSL_PREFIX=/gsl/prefix
 SWIG=/path/to/swig`. `DEBUG=1` builds without optimization and with symbols.
 
-The build puts `cfacv.so` and `libgenericdataspace.so` in `lib/` and the
+The build puts `cfacv.so` and `genericdataspace.so` in `lib/` and the
 single-sweep tools (`ForcesFromLog`, `Reconstruct`, `FEPFromForces`) in
 `bin/`.
 
