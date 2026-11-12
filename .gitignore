@@ -11,3 +11,17 @@ ref_md/
 *-working*/
 output.*tgz
 .vscode/
+
+# binaries the makefile leaves in src/ before copying them to bin/
+src/ForcesFromLog
+src/Reconstruct
+src/FEPFromForces
+# make PROFILE=1
+gmon.out
+
+# local backup of a pre-rework makefile
+src/makefile.orig
+
+# python bytecode
+__pycache__/
+*.pyc

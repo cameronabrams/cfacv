@@ -3,6 +3,7 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <math.h>
+#include <ctype.h>   /* isspace, used in basisrep.c */
 
 typedef struct BASIS_FUNCTION_CENTER {
   int D;       // dimensionality of CV space
