@@ -2,6 +2,7 @@
 
 [![tests](https://github.com/cameronabrams/cfacv/actions/workflows/tests.yml/badge.svg)](https://github.com/cameronabrams/cfacv/actions/workflows/tests.yml)
 [![DOI](https://zenodo.org/badge/20736/cameronabrams/cfacv.svg)](https://zenodo.org/badge/latestdoi/20736/cameronabrams/cfacv)
+[![docs](https://readthedocs.org/projects/cfacv/badge/?version=latest)](https://cfacv.readthedocs.io/en/latest/)
 [![License: MIT](https://img.shields.io/badge/License-MIT-blue.svg)](LICENSE)
 
 Cameron F Abrams, Drexel University, Philadelphia, Pennsylvania  
@@ -15,6 +16,8 @@ CFACV's CVs are built on centers of mass of groups of atoms, and the lengths,
 angles and dihedrals constructed from them. CVs can be harmonically
 restrained or driven with TAMD. CFACV also implements the on-the-fly string
 method in CVs and single-sweep free-energy reconstruction.
+
+Full documentation: <https://cfacv.readthedocs.io>
 
 ## Citing CFACV
 

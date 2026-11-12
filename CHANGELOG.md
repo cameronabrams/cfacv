@@ -9,6 +9,11 @@ Releases are made as needed (see `RELEASING.md`). Add an entry under
 
 ## [Unreleased]
 
+### Added
+- Documentation at <https://cfacv.readthedocs.io>: installation, NAMD
+  configuration variables, CV types, restraint options, output, the TAMD
+  update as implemented, and the examples. CI builds it on every pull request.
+
 ### Fixed
 - `make config` no longer reports GSL as if found when it is not; it says
   whether GSL was found, and where.

@@ -1,0 +1,28 @@
+# Build the documentation the way Read the Docs builds it, so a broken docs
+# build shows up on the pull request rather than after the merge. Mirrors
+# .readthedocs.yaml: same OS, Python, requirements, conf.py, and warnings as
+# errors.
+name: docs
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  sphinx:
+    runs-on: ubuntu-24.04        # as .readthedocs.yaml
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"  # as .readthedocs.yaml
+      - name: Install the Sphinx toolchain
+        run: pip install -r docs/requirements.txt
+      - name: Build with warnings as errors
+        # --keep-going so one warning does not hide the rest
+        run: python -m sphinx -b html -W --keep-going docs/source docs/build/html
