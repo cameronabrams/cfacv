@@ -138,7 +138,8 @@ CFACV needs three inputs:
   ```
 
   Units: `k` in kcal/mol per CV unit squared, `TAMDkT` in kcal/mol,
-  `TAMDgamma` in 1/ps, `TAMDdt` in ps. A restraint on a dihedral must be
+  `TAMDdt` in ps, and `TAMDgamma` in kcal·ps/mol per CV unit squared (a
+  friction, not a rate; see the documentation's TAMD page). A restraint on a dihedral must be
   declared periodic with `{rf PERIODIC}`.
 
 The log reports CVs and TAMD variables on lines that begin with `CFACV)`.

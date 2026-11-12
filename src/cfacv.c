@@ -351,9 +351,10 @@ double tmdUpdate ( double z, double increment, int OK ) {
 }
 
 double tmdUpdate_Periodic ( double z, double increment, int OK ) {
-  double newz=z+increment;
-  if (newz>M_PI) newz-=2*OK*M_PI;
-  else if (newz<-M_PI) newz+=2*OK*M_PI;
+  /* move only inside the TMD window, as tmdUpdate does; always wrap */
+  double newz=z+OK*increment;
+  if (newz>M_PI) newz-=2*M_PI;
+  else if (newz<-M_PI) newz+=2*M_PI;
   return newz;
 }
 
@@ -884,8 +885,10 @@ int DataSpace_RestrainingForces ( DataSpace * ds, int first, int timestep ) {
 	r->z=tamdUpdate(ds,r->z,-r->f,r->tamdOpt,&r->tamd_noise,&r->tamd_restraint);
       }
       if (r->tmdOpt) {
+	/* t1-t0 increments, one after each of steps t0..t1-1, so the target
+	   in effect from step t1 on is exactly the TMD target */
 	r->z=r->tmdOpt->update(r->z,r->tmdOpt->increment,
-			       (r->tmdOpt->t0<=timestep)&&(r->tmdOpt->t1>=timestep));
+			       (r->tmdOpt->t0<=timestep)&&(timestep<r->tmdOpt->t1));
       }
       ds->z[i]=r->z;
     }

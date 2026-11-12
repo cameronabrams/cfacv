@@ -51,5 +51,11 @@ jobs:
         run: |
           echo 'load lib/cfacv.so cfa_cvlibc; load lib/genericdataspace.so genericdataspace; puts "loaded"' | tclsh
 
-      - name: CV values and forces
-        run: tclsh tests/cv_values.tcl
+      - name: Tests (CV values and forces, TMD schedule)
+        run: |
+          status=0
+          for t in tests/*.tcl; do
+            echo "== $t"
+            tclsh "$t" || status=1
+          done
+          exit $status
