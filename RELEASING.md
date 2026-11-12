@@ -4,12 +4,10 @@ CFACV is archived at Zenodo, which mints a DOI for every GitHub Release of
 this repository. A release is therefore a published, citable artifact, and is
 cut deliberately.
 
-## Cadence
+## When
 
-Quarterly. On the first of January, April, July and October,
-`.github/workflows/quarterly.yml` opens an issue if `CHANGELOG.md` has
-anything under `[Unreleased]`. If nothing is pending, no release is made.
-An urgent fix can be released at any time the same way.
+As needed: when `[Unreleased]` in `CHANGELOG.md` holds changes worth
+publishing. There is no fixed schedule.
 
 ## Day to day
 
