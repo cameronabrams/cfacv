@@ -31,7 +31,7 @@ gives it.
 
 Because the update divides a force by $\bar\gamma$, $\bar\gamma$ carries the
 units of a friction coefficient, not a rate: kcal·ps/mol per (CV unit)², so
-that $\Delta t\,f/\bar\gamma$ is in CV units. Documentation before v1.2
+that $\Delta t\,f/\bar\gamma$ is in CV units. Documentation through v1.1.0
 labeled `TAMDgamma` as 1/ps; that reading holds only if the auxiliary
 variable's mass is taken as 1 in those units. What matters for a run is the
 ratio $\bar\gamma/\kappa$, the relaxation time of $z$ toward $\theta$, which
