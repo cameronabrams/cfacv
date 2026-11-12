@@ -13,8 +13,20 @@ Releases are made as needed (see `RELEASING.md`). Add an entry under
 - Documentation at <https://cfacv.readthedocs.io>: installation, NAMD
   configuration variables, CV types, restraint options, output, the TAMD
   update as implemented, and the examples. CI builds it on every pull request.
+- `tests/tmd.tcl`, which checks the targeted-MD schedule for harmonic and
+  periodic restraints, including a target reached across ±π. CI and
+  `scripts/check.sh` now run every test in `tests/`.
 
 ### Fixed
+- Targeted MD on a periodic restraint (a dihedral) moved its target at every
+  step, before `tmd_t0` and after `tmd_t1` as well as between them, and left
+  it outside [-π, π] when it moved outside the window. The target now moves
+  only inside the window, as it already did for harmonic restraints.
+- Targeted MD applied one increment too many, so the target finished
+  `(tmd_z - start)/(tmd_t1 - tmd_t0)` past `tmd_z`. It now arrives at `tmd_z`
+  exactly at step `tmd_t1`. This affects harmonic and periodic restraints.
+- The units of `TAMDgamma` were documented as 1/ps. The TAMD update divides
+  a force by it, so it is a friction, in kcal·ps/mol per CV unit squared.
 - `make config` no longer reports GSL as if found when it is not; it says
   whether GSL was found, and where.
 - The README named the second library `libgenericdataspace.so`; the build

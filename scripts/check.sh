@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-# Build the committed tree in a scratch directory and run tests/cv_values.tcl.
+# Build the committed tree in a scratch directory and run every tests/*.tcl.
 #
 # Usage: scripts/check.sh [<git-ref>]      (default: HEAD)
 #
@@ -18,4 +18,9 @@ make -C "$WORK/src" cfacv.so genericdataspace.so > "$WORK/build.log" 2>&1 || {
     echo "ERROR: build failed" >&2
     exit 1
 }
-tclsh "$WORK/tests/cv_values.tcl" "$WORK"
+status=0
+for t in "$WORK"/tests/*.tcl; do
+    out="$(tclsh "$t" "$WORK" 2>&1)" || status=1
+    printf '%s\n' "$out" | grep -E '^(FAIL|[a-z_]+: [0-9]+ passed)' || true
+done
+exit $status
