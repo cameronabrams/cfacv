@@ -9,6 +9,8 @@ Releases are made as needed (see `RELEASING.md`). Add an entry under
 
 ## [Unreleased]
 
+## [1.1.0] - 2026-11-12
+
 ### Fixed
 - The C library builds again on current compilers: gcc 14 and later make
   implicit function declarations an error, and `strcmp` and `isspace` were
