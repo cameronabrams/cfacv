@@ -8,6 +8,12 @@ authors:
   - family-names: Abrams
     given-names: Cameron F.
     affiliation: Drexel University
+  - family-names: Gardner
+    given-names: Jasmine
+  - family-names: Shrivastav
+    given-names: Gourav
+  - family-names: Gyasi
+    given-names: Prince
 version: 1.0.1
 date-released: 2016-03-04
 license: MIT
