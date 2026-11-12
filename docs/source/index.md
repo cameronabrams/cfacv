@@ -18,6 +18,7 @@ install
 usage
 reference
 tamd
+string_method
 examples
 development
 ```

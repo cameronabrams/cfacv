@@ -10,7 +10,7 @@ they run in place from a checkout.
 | `alad-fixed-phi-psi/` | alanine dipeptide (CHARMM22, TIP3P) restrained at a fixed $(\phi, \psi)$ | `fixed-phi-psi.conf` |
 | `alad-tamd/` | TAMD on alanine dipeptide's $\phi$ and $\psi$ | `tamd.conf` |
 | `alad-single-sweep/` | single-sweep reconstruction of the $(\phi, \psi)$ free-energy surface; has its own README | `tamd.conf`, `fmX.conf` |
-| `alad-string-method/` | the on-the-fly string method in CVs; has its own README; needs an MPI build of NAMD | `alad_stringmethod.conf` |
+| `alad-string-method/` | the on-the-fly string method in CVs (see {doc}`string_method`); has its own README; needs an MPI build of NAMD | `alad_stringmethod.conf` |
 | `hiv1-ma/` | TAMD on the centers of five subdomains of HIV-1 matrix protein (PDB 1HIW) | `example.conf` |
 
 For `hiv1-ma/`, first build the label PDB with VMD:

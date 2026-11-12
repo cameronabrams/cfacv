@@ -13,11 +13,23 @@ Releases are made as needed (see `RELEASING.md`). Add an entry under
 - Documentation at <https://cfacv.readthedocs.io>: installation, NAMD
   configuration variables, CV types, restraint options, output, the TAMD
   update as implemented, and the examples. CI builds it on every pull request.
+- A documentation page on the string method: how it runs, dual-image mode,
+  climbing, every parameter, and the limitation that a string of periodic
+  CVs must not cross ±π.
+- `tests/string_method.tcl`, which checks the image update, reparameterization
+  against an independent implementation, fixed ends, and dual-image mode.
 - `tests/tmd.tcl`, which checks the targeted-MD schedule for harmonic and
   periodic restraints, including a target reached across ±π. CI and
   `scripts/check.sh` now run every test in `tests/`.
 
 ### Fixed
+- String-method reparameterization assigned pointers where it meant to copy
+  values, so after the first pass every reparameterization interpolated in
+  place, reading images it had already moved. The resulting string was
+  slightly off the reparameterized curve (by about 2e-4 after 20,000 noisy
+  updates in a test of the example's settings).
+- String-method reparameterization stopped the run with "did not converge"
+  when it converged on exactly the last allowed iteration.
 - Targeted MD on a periodic restraint (a dihedral) moved its target at every
   step, before `tmd_t0` and after `tmd_t1` as well as between them, and left
   it outside [-π, π] when it moved outside the window. The target now moves
