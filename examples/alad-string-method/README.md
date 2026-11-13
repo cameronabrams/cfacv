@@ -78,9 +78,9 @@ This command can be monitored (as you might suspect) by
 
 **mkinitimages.sh** runs a bunch of sequential NAMD simulations to set up the images.  Note that here is the first place you encounter the input files **cv.inp** and **label.pdb**.  These are **very, very important files**, as you should have learned in the very first cfacv tutorial.  Briefly, **label.pdb** is a full PDB file congruent to the system that merely serves to label atoms as belonging either to _no_ group (![beta](README_images/beta.png) = 0) or to a specified group (![beta](README_images/beta.png) = 1,2,...).  The center of mass of group ![n](README_images/litn.png) as defined by **label.pdb** is referred to as "center" ![parens_n_1](README_images/parens_n-1.png) in **cv.inp**.  In this tutorial, we define the two CV's as the ![phi](README_images/phi.png) and ![psi](README_images/psi.png) dihedrals; if you examine **label.pdb** and **cv.inp** carefully, you should be able to confirm this for yourself.  Finally, **mkinitimages.sh** generates a separate file for each image with the name **restr.job0.#-1.inp**, where the **#**  is replaced by the image number from 0 to 23.  These files contain the value of the point in CV space each image is initially tethered to.  These are also read in by the SMCV calculation at the beginning.
 
-**alad_stringmethod.conf** also stipulates that image simulation outputs are organized into directories of naming format `output/#/`, where again the `#` is the image number.  To easily generate an empty set of output directories, use the NAMD-provided script **make_output_directories.sh** via
+**alad_stringmethod.conf** also stipulates that image simulation outputs are organized into directories of naming format `output/#/`, where again the `#` is the image number.  To easily generate an empty set of output directories, use the NAMD-provided script **make_output_dirs.sh** via
 
-`../../sbin/make_output_directories.sh output 24`
+`../../sbin/make_output_dirs.sh output 24`
 
 where the first argument is the base subdirectory name for the output and the second is the number of subdirectories of _that_ directory to make, one for each image.
 

@@ -17,6 +17,8 @@ Releases are made as needed (see `RELEASING.md`). Add an entry under
   the package to install on common systems, and show how to build without it.
 
 ### Fixed
+- The string-method example README named `sbin/make_output_directories.sh`;
+  the script is `sbin/make_output_dirs.sh`.
 - `sbin/measurefep.sh`, which computes the free energy along a converged
   string, could not run as shipped: it hardcoded paths to a NAMD 2.11 build
   and `charmrun`, needed `bc`, ignored `-smh`, and exited with success on
