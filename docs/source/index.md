@@ -1,6 +1,6 @@
-# CFACV
+# cfacv
 
-CFACV is a collective variables implementation for
+cfacv is a collective variables implementation for
 [NAMD](https://www.ks.uiuc.edu/Research/namd/) that works through NAMD's
 `tclforces` interface. It implements temperature-accelerated molecular
 dynamics (TAMD), harmonic and periodic restraints on collective variables
@@ -23,9 +23,9 @@ examples
 development
 ```
 
-## Citing CFACV
+## Citing cfacv
 
-CFACV is archived at Zenodo; cite the version you used (GitHub's "Cite this
+cfacv is archived at Zenodo; cite the version you used (GitHub's "Cite this
 repository" reads the repository's `CITATION.cff`). Please also cite
 
 > Cameron F. Abrams and Eric Vanden-Eijnden, "Large-scale conformational
@@ -33,5 +33,5 @@ repository" reads the repository's `CITATION.cff`). Please also cite
 > *Proc. Natl. Acad. Sci. USA* **107**, 4961-4966 (2010).
 > [doi:10.1073/pnas.0914540107](https://doi.org/10.1073/pnas.0914540107)
 
-Source: <https://github.com/cameronabrams/cfacv>. CFACV is released under
+Source: <https://github.com/cameronabrams/cfacv>. cfacv is released under
 the MIT license.

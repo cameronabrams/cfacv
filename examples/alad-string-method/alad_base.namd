@@ -30,7 +30,7 @@ pme on
 pmegridspacing 1.0
 wrapall on
 
-# CFACV parameters
+# cfacv parameters
 tclforces                       on
 tclforcesscript                 $CFACV_BASEDIR/tcl/cfacv_tclforces_stringmethod.tcl
 set labelPDB                    label.pdb

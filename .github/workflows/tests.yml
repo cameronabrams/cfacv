@@ -1,7 +1,7 @@
-# Build CFACV and check its collective variables, without NAMD.
+# Build cfacv and check its collective variables, without NAMD.
 #
 # NAMD itself is not available here (its download requires registration), so
-# this checks the part of CFACV that is ours: that the C library and its SWIG
+# this checks the part of cfacv that is ours: that the C library and its SWIG
 # Tcl bindings build on current compilers, load into a Tcl interpreter, and
 # compute CV values and restraining forces correctly (tests/cv_values.tcl).
 # A full TAMD run under NAMD remains a manual check.

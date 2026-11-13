@@ -1,10 +1,10 @@
-# Sphinx configuration for the CFACV documentation.
+# Sphinx configuration for the cfacv documentation.
 
 import os
 
 ROOT = os.path.abspath(os.path.join(os.path.dirname(__file__), '..', '..'))
 
-project = 'CFACV'
+project = 'cfacv'
 copyright = '2009-2026, Cameron F Abrams'
 author = 'Cameron F Abrams, Jasmine Gardner, Gourav Shrivastav, Prince Gyasi'
 
@@ -24,4 +24,4 @@ myst_heading_anchors = 3
 exclude_patterns = ['build']
 
 html_theme = 'furo'
-html_title = f'CFACV {release}'
+html_title = f'cfacv {release}'

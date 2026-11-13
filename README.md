@@ -1,4 +1,4 @@
-# CFACV -- a collective variables implementation for NAMD
+# cfacv -- a collective variables implementation for NAMD
 
 [![tests](https://github.com/cameronabrams/cfacv/actions/workflows/tests.yml/badge.svg)](https://github.com/cameronabrams/cfacv/actions/workflows/tests.yml)
 [![DOI](https://zenodo.org/badge/20736/cameronabrams/cfacv.svg)](https://zenodo.org/badge/latestdoi/20736/cameronabrams/cfacv)
@@ -9,19 +9,19 @@ Cameron F Abrams, Drexel University, Philadelphia, Pennsylvania
 cfa22@drexel.edu  
 215 895 2231  
 
-CFACV is a simple collective variables implementation for NAMD that uses
+cfacv is a simple collective variables implementation for NAMD that uses
 `tclforces` and implements Temperature-Accelerated Molecular Dynamics (TAMD).
 Collective variables (CVs) are functions of atomic Cartesian coordinates;
-CFACV's CVs are built on centers of mass of groups of atoms, and the lengths,
+cfacv's CVs are built on centers of mass of groups of atoms, and the lengths,
 angles and dihedrals constructed from them. CVs can be harmonically
-restrained or driven with TAMD. CFACV also implements the on-the-fly string
+restrained or driven with TAMD. cfacv also implements the on-the-fly string
 method in CVs and single-sweep free-energy reconstruction.
 
 Full documentation: <https://cfacv.readthedocs.io>
 
-## Citing CFACV
+## Citing cfacv
 
-CFACV is archived at Zenodo; cite the version you used (the DOI badge above
+cfacv is archived at Zenodo; cite the version you used (the DOI badge above
 leads to all versions, and GitHub's "Cite this repository" reads
 [`CITATION.cff`](CITATION.cff)). Please also cite
 
@@ -32,14 +32,19 @@ leads to all versions, and GitHub's "Cite this repository" reads
 
 ## Installing
 
-Prerequisites: a C compiler, `swig`, Tcl 8.6 headers, and (for the
-single-sweep tools only) the GNU Scientific Library.
+Prerequisites: a C compiler, `swig`, Tcl 8.6 headers, and, for the
+single-sweep reconstruction tool `Reconstruct` only, the GNU Scientific
+Library (GSL) development files: `gsl-devel` (openSUSE, Fedora, RHEL),
+`libgsl-dev` (Debian, Ubuntu), `gsl` (Homebrew, conda-forge). TAMD, TMD and
+the string method do not need GSL. See the
+[installation docs](https://cfacv.readthedocs.io/en/latest/install.html)
+for details.
 
 ```bash
 git clone https://github.com/cameronabrams/cfacv.git
 cd cfacv/src
 make config     # shows the Tcl, GSL and swig it found
-make all        # or: make cfacv.so genericdataspace.so  (no GSL needed)
+make all        # without GSL: make cfacv.so genericdataspace.so ForcesFromLog FEPFromForces
 ```
 
 The makefile finds Tcl, GSL and swig itself. If it picks the wrong one, or
@@ -73,9 +78,9 @@ for doing that.
 The string-method example uses NAMD's replica feature (`+partitions`), which
 requires an MPI build of NAMD; a multicore build refuses to start it.
 
-## Using CFACV in a NAMD run
+## Using cfacv in a NAMD run
 
-CFACV hooks into NAMD through `tclforces`. In the NAMD configuration file:
+cfacv hooks into NAMD through `tclforces`. In the NAMD configuration file:
 
 ```tcl
 set CFACV_BASEDIR    /path/to/cfacv     ;# or set the CFACV_BASEDIR environment variable
@@ -93,7 +98,7 @@ the computation is in `src/cfacv.c`, reached through the SWIG bindings in
 `lib/cfacv.so`. To understand the implementation, trace the code starting
 from `cfacv_tclforces.tcl`.
 
-CFACV needs three inputs:
+cfacv needs three inputs:
 
 * **`labelPDB`** -- a PDB congruent with the simulation system in which the
   beta field of each atom gives its group ("center"); 0 means the atom is in
