@@ -9,6 +9,22 @@ Releases are made as needed (see `RELEASING.md`). Add an entry under
 
 ## [Unreleased]
 
+### Added
+- The formats of the three input files (label PDB, CV file, restraint file)
+  are specified in the reference docs, "Input files", as a public interface
+  that changes only compatibly within a major version, so other programs can
+  write them. `tests/input_files.tcl` checks cfacv against the specification.
+
+### Fixed
+- The label PDB reader read only `ATOM` records, so group atoms on `HETATM`
+  records (ligands, for example) were silently left out. It now reads both.
+- The label PDB reader took "no group" to be the exact string `0.00`; a zero
+  written as `0.0` or `-0.00` was read as group 0, which shifted every atom
+  into the wrong group. It now reads the beta as a number. A beta that is not
+  a whole number, a negative beta, a group atom without a mass, or group
+  numbers with a gap are now errors with a message, instead of a silently
+  wrong set of groups. Every label PDB in the repository reads as before.
+
 ## [1.1.3] - 2026-11-13
 
 ### Fixed

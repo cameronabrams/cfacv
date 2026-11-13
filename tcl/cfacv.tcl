@@ -129,31 +129,37 @@ proc getArg { argv key altkey def } {
 ###############################################################
 # read_centersPDB
 ###############################################################
-# Sets up the centers according to the template PDB file
-# in which each atom's beta field designates the index of
-# the center to which it belongs; each atom can belong
-# to one and only one center!  Also, the occupancy
-# field should contain the atomic mass in amu.
+# Sets up the centers (groups) from a label PDB. This file format
+# is a public interface: docs/source/reference.md, "Input files",
+# is its specification, and tests/input_files.tcl checks it.
 #
-# IMPORTANT: A beta of i means the atom belongs to the (i-1)th 
-# center! A beta of "0" indicates that the atom does not belong 
-# to a center.
-# 
+#  - ATOM and HETATM records are read; all others are ignored.
+#  - columns 7-11, the serial, are the atom's 1-based index in the
+#    NAMD structure; above 99999 they may be hexadecimal, as VMD
+#    writes them.
+#  - columns 55-60, the occupancy, hold the atom's mass in amu.
+#  - columns 61-66, the beta, hold the atom's group: 0 for none, and
+#    i >= 1 for group i, which cv.inp calls group i-1. Each atom is
+#    in at most one group, and the groups used must be 1..N with
+#    none skipped.
+#
 # returns:
 #  serArr: a tcl list in which the i'th element
-#          is a list of atom serial numbers (1-based indicies)
+#          is a list of atom serial numbers (1-based indices)
 #          belonging to center i
 #
 #  masses: a tcl list in which the i'th element
 #          is the total mass of center i
 #
-#  atnames: a tcl list in which the j'th elemen
+#  atnames: a tcl list in which the j'th element
 #          is the atom name of atom j
 #
 #  numatoms: number of atoms in PDB
 #
 #  return value is the number of centers
 #
+# Raises an error on a beta that is not a whole number, a negative
+# beta, or group numbers with a gap.
 ###############################################################
 proc read_centersPDB { templatePdb serArr mass atnames numatoms } {
     upvar $serArr serArray
@@ -164,78 +170,59 @@ proc read_centersPDB { templatePdb serArr mass atnames numatoms } {
     set inStream [open $templatePdb r]
     set data [read $inStream]
     close $inStream
-    set lines [split $data \n]
 
-    set n 0
     set na 0
-    set indices {}
-    foreach line $lines {
-	set cardstr [string range $line 0 3]
-	set namestr [string range $line 13 15]
-	set occustr [string trim [string range $line 54 59]]
-	set betastr [string trim [string range $line 60 65]]
-	#puts "o|$occustr|b|$betastr|"
-	if {([string equal $cardstr "ATOM"]) && [expr 0==[string equal $betastr "0.00"]]} {
-	    set t [expr int($betastr)-1]
-#	    puts "DB: found betastr |$betastr| => group $t"
-	    set index [lsearch $indices $t]
-	    if { [expr $index == -1] } {
-		lappend indices $t
-	    }
-	}
-	if {[string equal $cardstr "ATOM"]} {
-	    incr na
-	    lappend anms $namestr
-	}
-	incr n
+    set anms {}
+    array set members {}
+    array set gmass {}
+    set lineno 0
+    foreach line [split $data \n] {
+        incr lineno
+        set cardstr [string range $line 0 5]
+        if {![string match "ATOM*" $cardstr] && ![string match "HETATM" $cardstr]} continue
+        incr na
+        lappend anms [string range $line 13 15]
+        set betastr [string trim [string range $line 60 65]]
+        if {$betastr eq "" || ![string is double -strict $betastr]} {
+            error "cfacv: $templatePdb line $lineno: beta '$betastr' is not a number"
+        }
+        if {$betastr != round($betastr)} {
+            error "cfacv: $templatePdb line $lineno: beta $betastr is not a whole number"
+        }
+        set g [expr {int(round($betastr))}]
+        if {$g == 0} continue
+        if {$g < 0} {
+            error "cfacv: $templatePdb line $lineno: beta $g is negative"
+        }
+        # serials above 99999 are hexadecimal in VMD-written PDBs
+        set serlstr [string trim [string range $line 6 10]]
+        if {[string is integer -strict $serlstr]} {
+            set serl [scan $serlstr %d]
+        } else {
+            set serl [expr 0x$serlstr]
+        }
+        set occustr [string trim [string range $line 54 59]]
+        if {![string is double -strict $occustr]} {
+            error "cfacv: $templatePdb line $lineno: occupancy (mass) '$occustr' is not a number"
+        }
+        lappend members($g) $serl
+        if {![info exists gmass($g)]} { set gmass($g) 0.0 }
+        set gmass($g) [expr {$gmass($g) + $occustr}]
     }
-    set indices [lsort -integer $indices]
-    set nMon [llength $indices]
 
-    puts "DB: read_centersPDB: indices $indices nMon $nMon"
-
-    for {set i 0} {$i < $nMon} {incr i} {
-	lappend serArray {}
-	lappend masses 0.0
+    set groups [lsort -integer [array names members]]
+    set nMon [llength $groups]
+    for {set i 1} {$i <= $nMon} {incr i} {
+        if {![info exists members($i)]} {
+            error "cfacv: $templatePdb: groups [join $groups {, }] skip group $i; number them 1..N"
+        }
     }
-    set n 0
-    foreach line $lines {
-	set cardstr [string range $line 0 3]
-	set serlstr [string trim [string range $line 5 11]]
-        # occustr is used to hold atomic mass in amu.
-	set occustr [string trim [string range $line 54 59]]
-	set betastr [string trim [string range $line 60 65]]
-	# if the beta field is nonzero, it is assumed to be an integer
-	# that indicates which center this atom belongs to
-	if {([string equal $cardstr "ATOM"]) && [expr 0==[string equal $betastr "0.00"]]} {
-	    # identify which center to which this atom belongs
-	    set t [expr int($betastr)-1]
-	    # extract that center's current list of atom indices from the list of lists
-	    set nlist [lindex $serArray $t]
-	    # add this index to the list; index is serial-1
-
-	    # since begining with 100000, serial numbers are stored and
-	    # read in hex, need to check whether this is a hex number
-	    # -- I'll do this by seeing if it is not an integer
-#	    puts "adding serl $serlstr to $nlist"
-	    if {[string is integer $serlstr]} {
-		set serl [expr $serlstr]
-	    } else {
-		set serl [expr 0x$serlstr]
-	    }
-	
-	    lappend nlist $serl
-	    # return the newly appended list of indices to the list of lists
-	    set serArray [lreplace $serArray $t $t $nlist]
-	    # update the mass of this pseudoatom
-	    set am [expr double($occustr)]
-	#    puts "DB: read_centersPDB: atom serial $serlstr mass $am to mon $t"
-	    set masses [lreplace $masses $t $t [expr [lindex $masses $t] + $am]]
-	}
-	incr n
+    set serArray {}
+    set masses {}
+    for {set i 1} {$i <= $nMon} {incr i} {
+        lappend serArray $members($i)
+        lappend masses $gmass($i)
     }
-    puts "DB: returning nMon $nMon"
-#    puts "DB: serArray : $serArray"
     return $nMon
 }
 

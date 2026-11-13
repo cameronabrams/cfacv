@@ -21,6 +21,69 @@ Set these with `set` in the NAMD configuration file, before the
 | `TAMDbinof` | | binary report every this many steps (default 1) |
 | `TAMDverbose` | | if set at all, print the groups and CVs as they are set up |
 
+(input-files)=
+## Input files
+
+cfacv reads three input files: the label PDB (`labelPDB`), the CV file
+(`cvINP`) and the restraint file (`restrINP`). Their formats are a public
+interface, which other programs may write. Within a major version they
+change only compatibly: a file that is valid under this specification stays
+valid, and means the same thing. `tests/input_files.tcl` checks cfacv
+against this section.
+
+### Label PDB
+
+A PDB file congruent with the NAMD structure, atom for atom, that assigns
+atoms to groups. A group's center is its center of mass, and every CV is
+defined on group centers.
+
+- `ATOM` and `HETATM` records are read; every other record is ignored.
+- **Serial** (columns 7-11): the atom's 1-based index in the NAMD structure.
+  Above 99999 it may be written in hexadecimal, as VMD writes it.
+- **Occupancy** (columns 55-60): the atom's mass in amu. Only atoms in a
+  group need a mass; the group's mass is the sum.
+- **Beta** (columns 61-66): the atom's group, as a whole number. `0` (written
+  any way, such as `0.00`, `0.0` or `-0.00`) means no group. A value `i >= 1`
+  puts the atom in group `i`, which the CV file calls group `i - 1`.
+- Each atom is in at most one group, so groups cannot overlap.
+- The groups used must be numbered `1` to `N` with none skipped.
+
+A beta that is not a whole number, a negative beta, a group atom without a
+numeric occupancy, or a gap in the group numbers is an error.
+
+### CV file
+
+One CV per line; blank lines and lines starting with `#` are ignored:
+
+```text
+TYPE g1 g2 ...
+```
+
+`TYPE` is one of the {ref}`CV types <cv-types>` and `g1 g2 ...` are
+**0-based** group indices: group `i` in the label PDB is `i - 1` here. The
+CVs are numbered from 0 in file order.
+
+### Restraint file
+
+One restraint per line; blank lines and lines starting with `#` are ignored.
+A restraint acts on a linear combination of the CVs: the line starts with one
+coefficient per CV, in CV order, followed by the restraint's options as
+`{key value}` pairs (see {ref}`restraint options <restraint-options>`):
+
+```text
+c1 c2 ... cN {key value} {key value} ...
+```
+
+For example, with two CVs, a periodic restraint on the first:
+
+```text
+1 0 {k 100.0} {rf PERIODIC} {b 1.0261928232448847}
+```
+
+Values are read as written, so targets keep their full precision. Without a
+restraint file, `restrPARAMS` puts one restraint with the given options on
+each CV.
+
 (cv-types)=
 ## CV types
 
