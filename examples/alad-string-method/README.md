@@ -57,7 +57,7 @@ Clone this repository to your local machine or whatever machine you'll be runnin
 
 `make all`
 
-Reminder that you need the Gnu Scientific Library (gsl) and its headers (gsl-devel) installed.
+This example does not need the GNU Scientific Library; only `Reconstruct`, which this example does not use, does.
 
 
 #### Setting up and running the example SMCV calculation

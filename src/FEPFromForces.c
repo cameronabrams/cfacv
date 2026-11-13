@@ -128,7 +128,7 @@ int main ( int argc, char * argv[] ) {
   int ni=0;
   char ln[255];
 
-  dat * D, * d;
+  dat * D=NULL, * d=NULL;
 
 
   for (i=1;i<argc;i++) {
@@ -137,10 +137,16 @@ int main ( int argc, char * argv[] ) {
     else if (!strcmp(argv[i],"-dim")) dim=atoi(argv[++i]);
   }
 
-  if (ifn) ifp=fopen(ifn,"r");
-  if (ofn) ofp=fopen(ofn,"w");
-  if (dim==-1) {
-    fprintf(stderr,"ERROR: must specify CV-space dimensionality with -d\n");
+  if (dim<1) {
+    fprintf(stderr,"ERROR: must specify CV-space dimensionality with -dim\n");
+    exit(-1);
+  }
+  if (!ifn || !ofn) {
+    fprintf(stderr,"Usage: FEPFromForces -i <image forces> -o <output> -dim <number of CVs>\n");
+    exit(-1);
+  }
+  if (!(ifp=fopen(ifn,"r"))) {
+    fprintf(stderr,"ERROR: cannot open %s\n",ifn);
     exit(-1);
   }
 
@@ -153,7 +159,15 @@ int main ( int argc, char * argv[] ) {
     }
   }
   fclose(ifp);
- 
+  if (!ni) {
+    fprintf(stderr,"ERROR: no data in %s\n",ifn);
+    exit(-1);
+  }
+  if (!(ofp=fopen(ofn,"w"))) {
+    fprintf(stderr,"ERROR: cannot open %s\n",ofn);
+    exit(-1);
+  }
+
   fprintf(stdout,"INFO: %d-dimensional data read from %d images\n",dim,ni);
 
 

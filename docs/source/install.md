@@ -5,8 +5,8 @@
 - a C compiler (gcc 11 through 16 are tested)
 - `swig`
 - Tcl 8.6 headers
-- the GNU Scientific Library, only for the single-sweep tools
-  `Reconstruct` and `FEPFromForces`
+- the GNU Scientific Library, only for the single-sweep reconstruction tool
+  `Reconstruct`
 
 ## Building
 

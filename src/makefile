@@ -47,7 +47,7 @@ ifeq ($(strip $(TCL_INC)),)
   $(error tcl.h not found. Pass TCL_INC=/dir/containing/tcl.h)
 endif
 
-# ---- GSL (Reconstruct and FEPFromForces only) -----------------------------
+# ---- GSL (Reconstruct only) -----------------------------
 GSL_CONFIG := $(shell command -v gsl-config 2>/dev/null)
 ifneq ($(GSL_CONFIG),)
   GSL_CFLAGS := $(shell $(GSL_CONFIG) --cflags)
@@ -65,7 +65,7 @@ else
   GSL_CFLAGS :=
   GSL        := -lgsl -lgslcblas
   ifeq ($(wildcard /usr/include/gsl/gsl_linalg.h),)
-    GSL_NOTE := (not found; only Reconstruct and FEPFromForces need it -- pass GSL_PREFIX=)
+    GSL_NOTE := (not found; only Reconstruct needs it -- pass GSL_PREFIX=)
   else
     GSL_NOTE := (default system paths)
   endif
@@ -128,7 +128,7 @@ Reconstruct: $(SSOBJ) Reconstruct.o | ../bin
 	cp $@ ../bin/
 
 FEPFromForces: FEPFromForces.c | ../bin
-	$(CC) $(CFLAGS) $(USER_FLAGS) $(LDFLAGS) -o $@ $^ $(LIBS) $(GSL)
+	$(CC) $(CFLAGS) $(USER_FLAGS) $(LDFLAGS) -o $@ $^ $(LIBS)
 	cp $@ ../bin/
 
 # ---- header dependencies --------------------------------------------------
