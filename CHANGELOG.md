@@ -9,6 +9,8 @@ Releases are made as needed (see `RELEASING.md`). Add an entry under
 
 ## [Unreleased]
 
+## [1.1.3] - 2026-11-13
+
 ### Fixed
 - `FEPFromForces` integrated the mean force with a shifted, one-sided rule:
   the first step used image 0's force alone across the whole first interval,
