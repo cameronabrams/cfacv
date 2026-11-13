@@ -1,6 +1,6 @@
-# Using CFACV in a NAMD run
+# Using cfacv in a NAMD run
 
-CFACV hooks into NAMD through `tclforces`. A minimal stanza in the NAMD
+cfacv hooks into NAMD through `tclforces`. A minimal stanza in the NAMD
 configuration file:
 
 ```tcl
@@ -34,7 +34,7 @@ that assigns atoms to groups:
 - **beta** (columns 61-66) is the atom's group number, starting at **1**;
   `0.00` means the atom is in no group. Number groups consecutively, 1, 2,
   3, ... with no gaps.
-- **occupancy** (columns 55-60) must hold the atom's **mass**. CFACV sums it
+- **occupancy** (columns 55-60) must hold the atom's **mass**. cfacv sums it
   into the group's mass.
 - Only `ATOM` records are read. Atoms written as `HETATM` (often ions,
   water and ligands) cannot be grouped.

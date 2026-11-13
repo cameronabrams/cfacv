@@ -7,7 +7,7 @@ physical one. The atoms feel the restraint force; $z$ feels the opposite
 force, and explores the free-energy surface of $\theta$ at the accelerated
 temperature (Abrams and Vanden-Eijnden, *PNAS* **107**, 4961 (2010)).
 
-At every MD step, for each TAMD restraint, CFACV
+At every MD step, for each TAMD restraint, cfacv
 
 1. computes the restraint force on $\theta$,
    $f = -\kappa\,(\theta - z)$, and applies $f\,\partial\theta/\partial

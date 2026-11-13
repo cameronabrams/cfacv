@@ -1,6 +1,6 @@
 # Changelog
 
-All notable changes to CFACV are recorded here. The format follows
+All notable changes to cfacv are recorded here. The format follows
 [Keep a Changelog](https://keepachangelog.com/en/1.1.0/), and versions follow
 [Semantic Versioning](https://semver.org/).
 
@@ -9,7 +9,16 @@ Releases are made as needed (see `RELEASING.md`). Add an entry under
 
 ## [Unreleased]
 
+### Changed
+- The project name is written in lower case, cfacv, throughout the
+  documentation, the citation metadata and release titles. Log tags
+  (`CFACV)`, `CFACV/C)`) and `CFACV_*` variables are unchanged.
+- The installation docs say which tools need GSL (only `Reconstruct`), give
+  the package to install on common systems, and show how to build without it.
+
 ### Fixed
+- An explicit `GSL_PREFIX` now takes precedence over a `gsl-config` on the
+  `PATH`; before, `gsl-config` won and `GSL_PREFIX` was ignored.
 - The string method's convergence monitor, `sbin/measurermsd.sh`, which the
   example README tells you to run, did not exist. The two scripts that did,
   `measurermsd_JMG.sh` (needs `bc`) and `sbin/rmsd.sh` (could not find the
@@ -83,7 +92,7 @@ Releases are made as needed (see `RELEASING.md`). Add an entry under
 - The default branch is `main`.
 
 ### Added
-- Continuous integration: every pull request builds CFACV with gcc 11 and
+- Continuous integration: every pull request builds cfacv with gcc 11 and
   gcc 14 and runs `tests/cv_values.tcl`, which checks each CV type's value
   and restraining forces without NAMD (#5).
 - An MIT license, a `CITATION.cff`, this changelog, and release tooling

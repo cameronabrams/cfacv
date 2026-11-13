@@ -1,4 +1,4 @@
-# Check CFACV's collective variables without NAMD.
+# Check cfacv's collective variables without NAMD.
 #
 # For each CV type this loads lib/cfacv.so into a plain tclsh, places a few
 # point-mass centers at known positions, and checks two things:

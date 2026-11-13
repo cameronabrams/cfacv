@@ -1,6 +1,6 @@
 comma := ,
 
-# CFACV -- a simple collective-variables module for NAMD
+# cfacv -- a simple collective-variables module for NAMD
 #
 # Cameron F Abrams 2016-2018, Drexel University
 #
@@ -49,14 +49,15 @@ endif
 
 # ---- GSL (Reconstruct only) -----------------------------
 GSL_CONFIG := $(shell command -v gsl-config 2>/dev/null)
-ifneq ($(GSL_CONFIG),)
+# an explicit GSL_PREFIX wins over whatever gsl-config is on the PATH
+ifneq ($(strip $(GSL_PREFIX)),)
+  GSL_CFLAGS := -I$(GSL_PREFIX)/include
+  GSL        := -L$(GSL_PREFIX)/lib -Wl,-rpath,$(GSL_PREFIX)/lib -lgsl -lgslcblas
+else ifneq ($(GSL_CONFIG),)
   GSL_CFLAGS := $(shell $(GSL_CONFIG) --cflags)
   GSL_RAW    := $(shell $(GSL_CONFIG) --libs)
   # gsl-config gives -L but no -rpath; without it the binaries fail at run time
   GSL        := $(GSL_RAW) $(patsubst -L%,-Wl$(comma)-rpath$(comma)%,$(filter -L%,$(GSL_RAW)))
-else ifneq ($(strip $(GSL_PREFIX)),)
-  GSL_CFLAGS := -I$(GSL_PREFIX)/include
-  GSL        := -L$(GSL_PREFIX)/lib -Wl,-rpath,$(GSL_PREFIX)/lib -lgsl -lgslcblas
 else ifneq ($(wildcard $(CONDA_PREFIX)/include/gsl),)
   GSL_CFLAGS := -I$(CONDA_PREFIX)/include
   GSL        := -L$(CONDA_PREFIX)/lib -Wl,-rpath,$(CONDA_PREFIX)/lib -lgsl -lgslcblas

@@ -7,7 +7,7 @@ Set these with `set` in the NAMD configuration file, before the
 
 | variable | required | meaning |
 |---|---|---|
-| `CFACV_BASEDIR` | | the CFACV checkout; falls back to the `CFACV_BASEDIR` environment variable, then `$HOME/cfacv` |
+| `CFACV_BASEDIR` | | the cfacv checkout; falls back to the `CFACV_BASEDIR` environment variable, then `$HOME/cfacv` |
 | `labelPDB` | yes | the label PDB that defines the groups |
 | `cvINP` | yes | the CV file |
 | `restrINP` | one of these two | the restraint file |
@@ -63,7 +63,7 @@ $[-\pi, \pi]$.
 
 ## Output
 
-Every `TAMDof` steps CFACV writes lines tagged by `TAMDoutputlevel`, a sum of
+Every `TAMDof` steps cfacv writes lines tagged by `TAMDoutputlevel`, a sum of
 these flags:
 
 | flag | tag | content, one column per restraint |
@@ -74,6 +74,6 @@ these flags:
 | 8 | `CFACV/C) ND` | the noise term of the last TAMD update |
 
 Each line gives the step number, then the values. The default, 3, writes `Z`
-and `Th`. CFACV also writes `CFACV) Average gradF`, the restraint force
+and `Th`. cfacv also writes `CFACV) Average gradF`, the restraint force
 averaged since the last report, and `CFACV) Average MT`, the averaged metric
 tensor, which the string method uses.

@@ -1,8 +1,8 @@
 cff-version: 1.2.0
 message: >-
-  If you use CFACV, please cite the software and the paper that introduced
+  If you use cfacv, please cite the software and the paper that introduced
   temperature-accelerated molecular dynamics.
-title: "CFACV: a collective variables implementation for NAMD"
+title: "cfacv: a collective variables implementation for NAMD"
 type: software
 authors:
   - family-names: Abrams

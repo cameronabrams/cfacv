@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-# Release CFACV at a given version.
+# Release cfacv at a given version.
 #
 # Usage: scripts/release.sh <version> [--yes]
 # Example: scripts/release.sh 1.1.0
@@ -153,7 +153,7 @@ fi
 
 git add CHANGELOG.md VERSION CITATION.cff
 git commit -q -m "Release v$VERSION"
-git tag -a "v$VERSION" -m "CFACV v$VERSION"
+git tag -a "v$VERSION" -m "cfacv v$VERSION"
 
 echo "Pushing the release commit and tag v$VERSION to origin..."
 git push origin main

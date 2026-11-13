@@ -5,7 +5,7 @@ cfa22@drexel.edu
 215 895 2231  
 (c) 2016   
 
-This example uses NAMD and the CFACV collective variables module to implement
+This example uses NAMD and the cfacv collective variables module to implement
 the method of single-sweep reconstruction to compute the free energy
 in the space of (phi,psi) of alanine dipeptide, replicating
 the results in Maragliano and Vanden-Eijnden, JCP 128, 184110 (2008).

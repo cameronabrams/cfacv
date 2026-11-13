@@ -1,13 +1,13 @@
 # The string method
 
-CFACV implements the on-the-fly string method in collective variables
+cfacv implements the on-the-fly string method in collective variables
 (Maragliano and Vanden-Eijnden, *Chem. Phys. Lett.* **446**, 182 (2007)). It
 finds a minimum free-energy path in CV space between two states.
 
 The path is represented by a *string* of $R$ *images* $z^0, \dots, z^{R-1}$,
 points in CV space. Each image is tethered by harmonic restraints (spring
 constant $\kappa$) to an atomistic MD system, a NAMD replica. Every
-`steps_per_run` MD steps, CFACV gathers from each replica the mean force and
+`steps_per_run` MD steps, cfacv gathers from each replica the mean force and
 the metric tensor accumulated since the last update, moves the images, and
 reparameterizes the string so the images are equally spaced again.
 
@@ -27,7 +27,7 @@ MPI ranks must be a multiple of the number of replicas.
 
 The NAMD configuration (in the example, `job0.conf`) sets the string-method
 parameters and then sources `tcl/stringmethod.tcl`. Each replica's MD
-configuration (`alad_base.namd`) loads CFACV through
+configuration (`alad_base.namd`) loads cfacv through
 `tclforcesscript $CFACV_BASEDIR/tcl/cfacv_tclforces_stringmethod.tcl`, with a
 restraint spring constant given by `restrPARAMS`, for example `{{k 100}}`.
 

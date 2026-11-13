@@ -1,6 +1,6 @@
-# Releasing CFACV
+# Releasing cfacv
 
-CFACV is archived at Zenodo, which mints a DOI for every GitHub Release of
+cfacv is archived at Zenodo, which mints a DOI for every GitHub Release of
 this repository. A release is therefore a published, citable artifact, and is
 cut deliberately.
 
