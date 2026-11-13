@@ -13,7 +13,7 @@ cd "$(git rev-parse --show-toplevel)"
 WORK="$(mktemp -d "${TMPDIR:-/tmp}/cfacv-check.XXXXXX")"
 trap 'rm -rf "$WORK"' EXIT
 git archive "$REF" | tar -x -C "$WORK"
-make -C "$WORK/src" cfacv.so genericdataspace.so > "$WORK/build.log" 2>&1 || {
+make -C "$WORK/src" cfacv.so genericdataspace.so FEPFromForces > "$WORK/build.log" 2>&1 || {
     tail -30 "$WORK/build.log" >&2
     echo "ERROR: build failed" >&2
     exit 1

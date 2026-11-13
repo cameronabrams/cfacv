@@ -177,5 +177,5 @@ done <<< "$IMAGE_Z"
 
 [ $DRY_RUN -eq 1 ] && { echo "measurefep.sh: dry run; no NAMD runs."; exit 0; }
 
-"$BASEDIR/bin/FEPFromForces" -i "$IMAGE_FORCES" -dim "$NCV" -o fep.dat
+"$BASEDIR/bin/FEPFromForces" -i "$IMAGE_FORCES" -dim "$NCV" -o fep.dat $DIHED
 echo "measurefep.sh: fep.dat created."
