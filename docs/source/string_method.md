@@ -119,7 +119,10 @@ To compute the free energy along the converged string, run
 `sbin/measurefep.sh` in the run directory. For each image it runs restrained
 MD at the image's position (`fepX.conf` and `restr_fepX.inp` in the example
 are the templates), extracts the mean force with `bin/ForcesFromLog`, and
-integrates it along the string with `bin/FEPFromForces` into `fep.dat`. It
+integrates it along the string with `bin/FEPFromForces` into `fep.dat`, by
+the trapezoid rule on the chords between images:
+$F_{j+1} = F_j + \tfrac{1}{2}(f_j + f_{j+1})\cdot(z_j - z_{j+1})$, with $f$ the
+mean restraint force, $-\nabla F$. It
 runs NAMD as `namd3 +p8` by default; `-namd`, `-np` and `-cr` (a `charmrun`)
 change that, and `-n` writes the inputs without running anything. An image
 whose log already ended normally is not rerun, so an interrupted measurement

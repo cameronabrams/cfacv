@@ -1,5 +1,22 @@
-/* Free-energy profile calculation from image forces along string
- (c) 2016 cameron f abrams
+/* Free-energy profile along a string from the mean force at each image.
+
+   Input, one line per image in string order: z_1 ... z_dim f_1 ... f_dim,
+   where f is the mean restraint force kappa (theta - z) at the image, i.e.
+   -grad F. Lines starting with # are skipped.
+
+   The profile is integrated by the trapezoid rule on the chords between
+   neighboring images:
+
+     F(j+1) = F(j) + 1/2 (f_j + f_{j+1}) . (z_j - z_{j+1}),   F(0) = 0
+
+   and s, the arc length, is the running sum of chord lengths. With -dihed,
+   differences in z are wrapped into [-pi, pi].
+
+   Output, one line per image: j s F | z_1..z_dim f_1..f_dim t_1..t_dim,
+   where t is the unit tangent (central difference inside the string,
+   one-sided at the ends), pointing from image j toward image j-1.
+
+ (c) 2016-2026 cameron f abrams
  drexel university
 */
 
@@ -15,8 +32,6 @@ typedef struct DATUM {
   double * r;  // image location in Z-space (input)
   double * f;  // mean force vector (input)
   double * tv; // tangent vector along string (calculated)
-  double tf; // tangent mean force * interimage distance(calculated)
-  double dr;   // distance to next point (calculated)
   pdat next;
   pdat prev;
 } dat;
@@ -34,6 +49,18 @@ int buf2wordlist ( char * buf, char ** words, int MAXWORDS ) {
     }
   }
   return n;
+}
+
+static int dihed=0;
+
+/* a - b, wrapped into [-pi, pi] when the CVs are angles */
+double cvdiff ( double a, double b ) {
+  double d=a-b;
+  if (dihed) {
+    while (d>M_PI) d-=2*M_PI;
+    while (d<-M_PI) d+=2*M_PI;
+  }
+  return d;
 }
 
 double my_dot ( double * a, double * b, int n ) {
@@ -76,15 +103,14 @@ void do_tan ( dat * d ) {
    int i;
    double l;
    if (d) {
-     if (d->next && d->prev) for (i=0;i<d->dim;i++) d->tv[i]=0.5*(d->prev->r[i]-d->next->r[i]);
-     else if (d->next && !d->prev) for (i=0;i<d->dim;i++) d->tv[i]=d->r[i]-d->next->r[i];
-     else if (!d->next && d->prev) for (i=0;i<d->dim;i++) d->tv[i]=d->prev->r[i]-d->r[i];
+     if (d->next && d->prev) for (i=0;i<d->dim;i++) d->tv[i]=0.5*cvdiff(d->prev->r[i],d->next->r[i]);
+     else if (d->next && !d->prev) for (i=0;i<d->dim;i++) d->tv[i]=cvdiff(d->r[i],d->next->r[i]);
+     else if (!d->next && d->prev) for (i=0;i<d->dim;i++) d->tv[i]=cvdiff(d->prev->r[i],d->r[i]);
      else { fprintf(stderr,"ERROR: list is not formed correctly.  This is a bug.\n"); exit(-1);}
      l=0.0;
      for (i=0;i<d->dim;i++) l+=d->tv[i]*d->tv[i];
-     d->dr=sqrt(l);
-     for (i=0;i<d->dim;i++) d->tv[i]/=d->dr;
-     d->tf=my_dot(d->f,d->tv,d->dim);
+     l=sqrt(l);
+     for (i=0;i<d->dim;i++) d->tv[i]/=l;
    }
 }
 
@@ -103,13 +129,21 @@ void write_dat ( dat * D, FILE * ofp ) {
 
   for (d=D;d;d=d->next) {
     fprintf(ofp,"%i %.5lf %.5le | ",j,s,fep);
-    fep+=d->tf*d->dr;
-    s+=d->dr;
-    j++;
     for (i=0;i<d->dim;i++) fprintf(ofp,"%.6lf ",d->r[i]);
     for (i=0;i<d->dim;i++) fprintf(ofp,"%.6lf ",d->f[i]);
     for (i=0;i<d->dim;i++) fprintf(ofp,"%.6lf ",d->tv[i]);
     fprintf(ofp,"\n");
+    j++;
+    /* trapezoid across the chord to the next image */
+    if (d->next) {
+      double l=0.0, dz;
+      for (i=0;i<d->dim;i++) {
+        dz=cvdiff(d->r[i],d->next->r[i]);
+        l+=dz*dz;
+        fep+=0.5*(d->f[i]+d->next->f[i])*dz;
+      }
+      s+=sqrt(l);
+    }
   }
 }
 
@@ -135,6 +169,7 @@ int main ( int argc, char * argv[] ) {
     if (!strcmp(argv[i],"-i")) ifn=argv[++i];
     else if (!strcmp(argv[i],"-o")) ofn=argv[++i];
     else if (!strcmp(argv[i],"-dim")) dim=atoi(argv[++i]);
+    else if (!strcmp(argv[i],"-dihed")) dihed=1;
   }
 
   if (dim<1) {
@@ -142,7 +177,7 @@ int main ( int argc, char * argv[] ) {
     exit(-1);
   }
   if (!ifn || !ofn) {
-    fprintf(stderr,"Usage: FEPFromForces -i <image forces> -o <output> -dim <number of CVs>\n");
+    fprintf(stderr,"Usage: FEPFromForces -i <image forces> -o <output> -dim <number of CVs> [-dihed]\n");
     exit(-1);
   }
   if (!(ifp=fopen(ifn,"r"))) {
@@ -159,8 +194,8 @@ int main ( int argc, char * argv[] ) {
     }
   }
   fclose(ifp);
-  if (!ni) {
-    fprintf(stderr,"ERROR: no data in %s\n",ifn);
+  if (ni<2) {
+    fprintf(stderr,"ERROR: %s has %d image(s); a string needs at least 2\n",ifn,ni);
     exit(-1);
   }
   if (!(ofp=fopen(ofn,"w"))) {

@@ -9,6 +9,23 @@ Releases are made as needed (see `RELEASING.md`). Add an entry under
 
 ## [Unreleased]
 
+### Fixed
+- `FEPFromForces` integrated the mean force with a shifted, one-sided rule:
+  the first step used image 0's force alone across the whole first interval,
+  and each later value was the free energy at the midpoint between two
+  images, printed against the next image. On the alanine-dipeptide example
+  this put F at image 1 about 1 kcal/mol low and moved the intermediate
+  minimum by about an image. It now uses the trapezoid rule on the chords
+  between images, and the arc length is the sum of the chord lengths. With
+  `-dihed` (which `measurefep.sh` passes for dihedral CVs) differences are
+  wrapped into [-π, π]. Free-energy profiles computed with earlier versions
+  should be recomputed from their `image_forces.dat`, which is unaffected.
+
+### Added
+- `tests/fep_from_forces.tcl`, which checks `FEPFromForces` against
+  free energies known in closed form, including a string across ±π.
+  `scripts/check.sh` now builds `FEPFromForces` to run it.
+
 ## [1.1.2] - 2026-11-13
 
 ### Changed
