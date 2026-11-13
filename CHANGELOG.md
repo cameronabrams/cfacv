@@ -17,6 +17,19 @@ Releases are made as needed (see `RELEASING.md`). Add an entry under
   the package to install on common systems, and show how to build without it.
 
 ### Fixed
+- `sbin/measurefep.sh`, which computes the free energy along a converged
+  string, could not run as shipped: it hardcoded paths to a NAMD 2.11 build
+  and `charmrun`, needed `bc`, ignored `-smh`, and exited with success on
+  errors. It is rewritten in bash and awk: it runs `namd3 +pN` by default
+  (`-namd`, `-np`, `-cr` choose otherwise), reads restarts' histories, honors
+  `CFACV_BASEDIR`, resumes past images that already finished, has a dry-run
+  mode (`-n`), and exits nonzero on failure. On a full 12-image run its
+  restraint anchors, image forces and `fep.dat` are identical to those of the
+  same steps done by hand.
+- The string-method example's mean-force runs (`fepX.conf`) ran without PME:
+  `set PME on` set a Tcl variable, not the NAMD option, so the mean forces
+  were measured with cutoff electrostatics while the string itself was run
+  with PME. `fepX.conf` now turns PME on.
 - An explicit `GSL_PREFIX` now takes precedence over a `gsl-config` on the
   `PATH`; before, `gsl-config` won and `GSL_PREFIX` was ignored.
 - The string method's convergence monitor, `sbin/measurermsd.sh`, which the
