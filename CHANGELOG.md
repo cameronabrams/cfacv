@@ -9,6 +9,17 @@ Releases are made as needed (see `RELEASING.md`). Add an entry under
 
 ## [Unreleased]
 
+### Fixed
+- The string method's convergence monitor, `sbin/measurermsd.sh`, which the
+  example README tells you to run, did not exist. The two scripts that did,
+  `measurermsd_JMG.sh` (needs `bc`) and `sbin/rmsd.sh` (could not find the
+  default history file), are replaced by one `measurermsd.sh` that needs only
+  bash and awk, and reads restarts' histories too.
+- `FEPFromForces` no longer links GSL, which it never used, so only
+  `Reconstruct` needs GSL. It now exits with a message, instead of crashing,
+  when `-i` or `-o` is missing, a file cannot be opened, or the input has no
+  data; its error message named the option `-d` when it is `-dim`.
+
 ## [1.1.1] - 2026-11-12
 
 ### Added
@@ -25,11 +36,6 @@ Releases are made as needed (see `RELEASING.md`). Add an entry under
   `scripts/check.sh` now run every test in `tests/`.
 
 ### Fixed
-- The string method's convergence monitor, `sbin/measurermsd.sh`, which the
-  example README tells you to run, did not exist. The two scripts that did,
-  `measurermsd_JMG.sh` (needs `bc`) and `sbin/rmsd.sh` (could not find the
-  default history file), are replaced by one `measurermsd.sh` that needs only
-  bash and awk, and reads restarts' histories too.
 - The string-method example's `runstring.sh` and `mkinitimages.sh` overwrote
   an exported `CFACV_BASEDIR`, so the example failed when staged outside a
   checkout (as on a cluster's scratch space). They now use it when set.

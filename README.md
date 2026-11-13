@@ -47,8 +47,8 @@ none, override it: `make all TCL_INC=/dir/with/tcl.h GSL_PREFIX=/gsl/prefix
 SWIG=/path/to/swig`. `DEBUG=1` builds without optimization and with symbols.
 
 The build puts `cfacv.so` and `genericdataspace.so` in `lib/` and the
-single-sweep tools (`ForcesFromLog`, `Reconstruct`, `FEPFromForces`) in
-`bin/`.
+analysis tools (`ForcesFromLog`, `Reconstruct`, `FEPFromForces`) in `bin/`.
+Only `Reconstruct`, the single-sweep free-energy reconstruction, needs GSL.
 
 To check the build without NAMD:
 
