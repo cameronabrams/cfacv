@@ -123,11 +123,12 @@ Notice how it ends at zero RMSD by construction, since it is measuring RMSD rela
 
 #### Computing the free-energy profile along the string
 
-Computing the free energy profile along the string requires running several restrained MD simulations and tallying the free energy gradients and metric tensors.
-This is handled by the script **measurefep.sh** in the `sbin/` directory.
-Note that in order to run this script, you need to compile two helper C programs: `src/ForcesFromLog.c` and `src/FEPFromForces.c`.  
-If you issued a `make all` in the `src/` directory, these should have been compiled and their executables should exist in the `bin/` directory.   **measurefep.sh** is extensively commented and should be read carefully.
-The default values for the variables it needs conform to the alanine dipeptide tutorial, so just issuing it as `../../sbin/measurefep.sh` should launch the MD simulations in series, resulting finally in the file **fep.sh**.  The file **fep.sh** is a bash script that will plot the result, which will look like this:
+Computing the free energy profile along the string requires running one restrained MD simulation at each image and measuring the mean force there.
+This is handled by the script **measurefep.sh** in the `sbin/` directory, which uses **fepX.conf** and **restr_fepX.inp** here as templates.
+It needs two helper programs, `bin/ForcesFromLog` and `bin/FEPFromForces`, which `make all` in `src/` builds (neither needs GSL).
+The defaults conform to this tutorial, so issuing `../../sbin/measurefep.sh` here runs the twelve MD simulations in series with `namd3 +p8`; `-namd`, `-np` and `-cr` choose another NAMD, processor count or `charmrun`, and `-h` lists every option.
+An image whose log already ended normally is not rerun, so an interrupted measurement resumes where it stopped.
+The result is **fep.dat**; the bash script **fep.sh** plots it, and the result looks like this:
 
  ![fep](README_images/fep-crop.png)
 

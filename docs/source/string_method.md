@@ -114,3 +114,13 @@ string from the latest string,
 $\sqrt{\tfrac{1}{R}\sum_i |z^i - z^i_{\mathrm{ref}}|^2}$. The string has
 converged when this stops falling. `-nA N` uses the average of the last `N`
 frames as the reference; `-h` lists the other options.
+
+To compute the free energy along the converged string, run
+`sbin/measurefep.sh` in the run directory. For each image it runs restrained
+MD at the image's position (`fepX.conf` and `restr_fepX.inp` in the example
+are the templates), extracts the mean force with `bin/ForcesFromLog`, and
+integrates it along the string with `bin/FEPFromForces` into `fep.dat`. It
+runs NAMD as `namd3 +p8` by default; `-namd`, `-np` and `-cr` (a `charmrun`)
+change that, and `-n` writes the inputs without running anything. An image
+whose log already ended normally is not rerun, so an interrupted measurement
+resumes. `-h` lists the other options.
