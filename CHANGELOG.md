@@ -9,6 +9,8 @@ Releases are made as needed (see `RELEASING.md`). Add an entry under
 
 ## [Unreleased]
 
+## [1.1.2] - 2026-11-13
+
 ### Changed
 - The project name is written in lower case, cfacv, throughout the
   documentation, the citation metadata and release titles. Log tags
