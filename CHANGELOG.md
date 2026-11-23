@@ -9,6 +9,8 @@ Releases are made as needed (see `RELEASING.md`). Add an entry under
 
 ## [Unreleased]
 
+## [1.1.4] - 2026-11-23
+
 ### Added
 - The formats of the three input files (label PDB, CV file, restraint file)
   are specified in the reference docs, "Input files", as a public interface
