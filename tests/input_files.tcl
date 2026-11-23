@@ -54,7 +54,6 @@ proc pdbline {rec serial name resname resid occ beta} {
 # 1. A label PDB with what a program writing one may produce:
 #    - group atoms on ATOM and on HETATM records,
 #    - "no group" written as 0.00, as 0.0, and as -0.00,
-#    - a serial above 99999 in VMD's hexadecimal form (186a1 = 100001),
 #    - non-atom records (REMARK, TER, END) to skip.
 set label [join [list \
     "REMARK  label PDB written for a test" \
@@ -66,7 +65,7 @@ set label [join [list \
     [pdbline HETATM 6 C1 LIG 2 " 12.01" "  2.00"] \
     [pdbline HETATM 7 O1 LIG 2 " 16.00" "  2.00"] \
     "TER" \
-    [pdbline ATOM 186a1 OH2 TIP3 3 " 16.00" "  3.00"] \
+    [pdbline ATOM 8 OH2 TIP3 3 " 16.00" "  3.00"] \
     "END"] \n]\n
 set f [writefile label.pdb $label]
 set serArray {}; set masses {}; set atnames {}; set na 0
@@ -75,10 +74,50 @@ check "label: number of groups" $n 3
 check "label: atoms read (ATOM and HETATM)" $na 8
 check "label: group 1 (beta 1) members" [lindex $serArray 0] {1 2}
 check "label: group 2 (beta 2, HETATM) members" [lindex $serArray 1] {6 7}
-check "label: group 3 (hex serial) members" [lindex $serArray 2] {100001}
+check "label: group 3 (after TER) members" [lindex $serArray 2] {8}
 checknum "label: group 1 mass" [lindex $masses 0] 26.02 1e-9
 checknum "label: group 2 mass" [lindex $masses 1] 28.01 1e-9
 checknum "label: group 3 mass" [lindex $masses 2] 16.00 1e-9
+
+# 1a. Systems above 99999 atoms. The index is the atom's position among the
+#     atom records; the serial is only checked against it. VMD writes
+#     serials above 99999 in hexadecimal, so 148000 is "24220", which has
+#     no letter and reads as decimal 24220 -- the wrong atom.
+#     serialfmt turns a 1-based index into the 5-character serial.
+proc biglabel {name natoms serialfmt groups} {
+    # groups: dict index -> beta
+    set lines {}
+    for {set i 1} {$i <= $natoms} {incr i} {
+        set beta [expr {[dict exists $groups $i] ? [format %6.2f [dict get $groups $i]] : "  0.00"}]
+        lappend lines [pdbline ATOM [$serialfmt $i] OH2 TIP3 [expr {$i % 10000}] " 16.00" $beta]
+    }
+    return [writefile $name "[join $lines \n]\nEND\n"]
+}
+proc vmdserial {i} { if {$i > 99999} { return [format %05x $i] }; return $i }
+proc wrapserial {i} { expr {$i % 100000} }
+proc hy36serial {i} {
+    if {$i <= 99999} { return $i }
+    set v [expr {$i - 100000 + 10*36**4}]
+    set s ""
+    for {set k 0} {$k < 5} {incr k} {
+        set s "[string index 0123456789ABCDEFGHIJKLMNOPQRSTUVWXYZ [expr {$v % 36}]]$s"
+        set v [expr {$v / 36}]
+    }
+    return $s
+}
+set f [biglabel big_vmd.pdb 148000 vmdserial {24220 1 100001 2 148000 3}]
+set serArray {}; set masses {}; set atnames {}; set na 0
+set n [read_centersPDB $f serArray masses atnames na]
+check "big label (VMD hex): atoms read" $na 148000
+check "big label (VMD hex): atom 24220" [lindex $serArray 0] {24220}
+check "big label (VMD hex): atom 100001, written 186a1" [lindex $serArray 1] {100001}
+check "big label (VMD hex): atom 148000, written 24220" [lindex $serArray 2] {148000}
+foreach {fmt label} {wrapserial "decimal mod 100000" hy36serial "hybrid-36"} {
+    set f [biglabel big_$fmt.pdb 100010 $fmt {5 1 100001 2}]
+    set serArray {}; set masses {}; set atnames {}; set na 0
+    set n [read_centersPDB $f serArray masses atnames na]
+    check "big label ($label): groups" $serArray {5 100001}
+}
 
 # 2. Label PDBs that must be refused, with a message, not misread.
 proc refuses {label text pattern} {
@@ -95,6 +134,9 @@ refuses "fractional beta" [join [list \
     [pdbline ATOM 1 N ALA 1 " 14.01" "  1.50"]] \n]\n "*not a whole number*"
 refuses "negative beta" [join [list \
     [pdbline ATOM 1 N ALA 1 " 14.01" " -1.00"]] \n]\n "*negative*"
+refuses "atom missing (serial not the record position)" [join [list \
+    [pdbline ATOM 1 N ALA 1 " 14.01" "  1.00"] \
+    [pdbline ATOM 3 CA ALA 1 " 12.01" "  0.00"]] \n]\n "*serial '3' is not atom 2*"
 refuses "missing mass" [join [list \
     [pdbline ATOM 1 N ALA 1 "      " "  1.00"]] \n]\n "*occupancy*"
 

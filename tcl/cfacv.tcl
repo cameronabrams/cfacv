@@ -127,6 +127,38 @@ proc getArg { argv key altkey def } {
 }
 
 ###############################################################
+# label_serial_matches
+#
+# Is serial string s (PDB columns 7-11, trimmed) a way of writing
+# 1-based atom index n? Programs write serials above 99999
+# differently, and an all-digit string can be any of these, so each
+# reading is tried:
+#   decimal; decimal modulo 100000 (wrapped, as GROMACS writes);
+#   hexadecimal (VMD); hybrid-36 (A0000 = 100000).
+# A string with no digit at all (VMD's ***** past fffff) cannot be
+# checked and is accepted.
+###############################################################
+proc label_serial_matches { s n } {
+    if {![regexp {[0-9]} $s]} { return 1 }
+    if {[regexp {^[0-9]+$} $s]} {
+        scan $s %d d
+        if {$d == $n || ($n > 99999 && $d == $n % 100000)} { return 1 }
+    }
+    if {[regexp {^[0-9a-fA-F]+$} $s] && [scan $s %x] == $n} { return 1 }
+    if {[string length $s] == 5 && [regexp {^[A-Za-z][0-9A-Za-z]{4}$} $s]} {
+        set lower [string is lower [string index $s 0]]
+        set v 0
+        foreach c [split [string toupper $s] {}] {
+            set v [expr {$v * 36 + [string first $c "0123456789ABCDEFGHIJKLMNOPQRSTUVWXYZ"]}]
+        }
+        # upper case: A0000 = 100000; lower case follows the upper-case block
+        set v [expr {$lower ? $v - 10*36**4 + 100000 + 26*36**4 : $v - 10*36**4 + 100000}]
+        if {$v == $n} { return 1 }
+    }
+    return 0
+}
+
+###############################################################
 # read_centersPDB
 ###############################################################
 # Sets up the centers (groups) from a label PDB. This file format
@@ -134,9 +166,11 @@ proc getArg { argv key altkey def } {
 # is its specification, and tests/input_files.tcl checks it.
 #
 #  - ATOM and HETATM records are read; all others are ignored.
-#  - columns 7-11, the serial, are the atom's 1-based index in the
-#    NAMD structure; above 99999 they may be hexadecimal, as VMD
-#    writes them.
+#  - an atom's 1-based index in the NAMD structure is its position
+#    among the ATOM/HETATM records, so the file lists every atom in
+#    order. Columns 7-11, the serial, are only checked against that
+#    position (see label_serial_matches), never used in its place:
+#    VMD writes 148000 as hexadecimal 24220, which reads as decimal.
 #  - columns 55-60, the occupancy, hold the atom's mass in amu.
 #  - columns 61-66, the beta, hold the atom's group: 0 for none, and
 #    i >= 1 for group i, which cv.inp calls group i-1. Each atom is
@@ -158,8 +192,9 @@ proc getArg { argv key altkey def } {
 #
 #  return value is the number of centers
 #
-# Raises an error on a beta that is not a whole number, a negative
-# beta, or group numbers with a gap.
+# Raises an error on a serial that is not the atom's position, a beta
+# that is not a whole number, a negative beta, or group numbers with
+# a gap.
 ###############################################################
 proc read_centersPDB { templatePdb serArr mass atnames numatoms } {
     upvar $serArr serArray
@@ -181,6 +216,10 @@ proc read_centersPDB { templatePdb serArr mass atnames numatoms } {
         set cardstr [string range $line 0 5]
         if {![string match "ATOM*" $cardstr] && ![string match "HETATM" $cardstr]} continue
         incr na
+        set serlstr [string trim [string range $line 6 10]]
+        if {![label_serial_matches $serlstr $na]} {
+            error "cfacv: $templatePdb line $lineno: serial '$serlstr' is not atom $na, which this is by record order; the label PDB must list every atom of the structure in order"
+        }
         lappend anms [string range $line 13 15]
         set betastr [string trim [string range $line 60 65]]
         if {$betastr eq "" || ![string is double -strict $betastr]} {
@@ -194,13 +233,9 @@ proc read_centersPDB { templatePdb serArr mass atnames numatoms } {
         if {$g < 0} {
             error "cfacv: $templatePdb line $lineno: beta $g is negative"
         }
-        # serials above 99999 are hexadecimal in VMD-written PDBs
-        set serlstr [string trim [string range $line 6 10]]
-        if {[string is integer -strict $serlstr]} {
-            set serl [scan $serlstr %d]
-        } else {
-            set serl [expr 0x$serlstr]
-        }
+        # the atom's 1-based index is its position among the atom records;
+        # the serial in columns 7-11 is only checked against it
+        set serl $na
         set occustr [string trim [string range $line 54 59]]
         if {![string is double -strict $occustr]} {
             error "cfacv: $templatePdb line $lineno: occupancy (mass) '$occustr' is not a number"

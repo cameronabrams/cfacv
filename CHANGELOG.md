@@ -24,6 +24,14 @@ Releases are made as needed (see `RELEASING.md`). Add an entry under
   a whole number, a negative beta, a group atom without a mass, or group
   numbers with a gap are now errors with a message, instead of a silently
   wrong set of groups. Every label PDB in the repository reads as before.
+- The label PDB reader took an atom's index from its serial, read as
+  hexadecimal only when the serial contained a letter. VMD writes serials
+  above 99999 in hexadecimal, so one with only digits was read as decimal:
+  atom 148000, written `24220`, was taken as atom 24220, with no error. In
+  every release, a CV on a system of more than 99,999 atoms could silently
+  use the wrong atoms. The index is now the atom's position among the atom
+  records, and a serial that is not a way of writing that position is an
+  error. Reported by Prince Gyasi.
 
 ## [1.1.3] - 2026-11-13
 

@@ -38,8 +38,14 @@ atoms to groups. A group's center is its center of mass, and every CV is
 defined on group centers.
 
 - `ATOM` and `HETATM` records are read; every other record is ignored.
-- **Serial** (columns 7-11): the atom's 1-based index in the NAMD structure.
-  Above 99999 it may be written in hexadecimal, as VMD writes it.
+- The file lists every atom of the structure, in the structure's order, so
+  an atom's 1-based index is its position among the `ATOM` and `HETATM`
+  records. That position is what cfacv uses.
+- **Serial** (columns 7-11): checked against the atom's position, and an
+  error if it is not a way of writing it. Up to 99999 it is decimal; above,
+  cfacv accepts hexadecimal (as VMD writes it, so `24220` is atom 148000),
+  hybrid-36 (`A0000` is atom 100000), and decimal modulo 100000. A serial
+  with no digits, such as `*****`, is not checked.
 - **Occupancy** (columns 55-60): the atom's mass in amu. Only atoms in a
   group need a mass; the group's mass is the sum.
 - **Beta** (columns 61-66): the atom's group, as a whole number. `0` (written
